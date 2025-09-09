@@ -1,0 +1,72 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main timetable board background -->
+  <rect x="2" y="4" width="28" height="24" rx="3" fill="#f8fafc" stroke="#3b82f6" stroke-width="1.5"/>
+  
+  <!-- Timetable header -->
+  <rect x="2" y="4" width="28" height="6" rx="3" fill="#3b82f6"/>
+  
+  <!-- Header text area -->
+  <rect x="4" y="6" width="24" height="2" fill="#1d4ed8" rx="1"/>
+  
+  <!-- Timetable grid -->
+  <!-- Vertical lines -->
+  <line x1="6" y1="10" x2="6" y2="26" stroke="#3b82f6" stroke-width="0.8"/>
+  <line x1="10" y1="10" x2="10" y2="26" stroke="#3b82f6" stroke-width="0.8"/>
+  <line x1="14" y1="10" x2="14" y2="26" stroke="#3b82f6" stroke-width="0.8"/>
+  <line x1="18" y1="10" x2="18" y2="26" stroke="#3b82f6" stroke-width="0.8"/>
+  <line x1="22" y1="10" x2="22" y2="26" stroke="#3b82f6" stroke-width="0.8"/>
+  <line x1="26" y1="10" x2="26" y2="26" stroke="#3b82f6" stroke-width="0.8"/>
+  
+  <!-- Horizontal lines -->
+  <line x1="2" y1="12" x2="30" y2="12" stroke="#3b82f6" stroke-width="0.8"/>
+  <line x1="2" y1="16" x2="30" y2="16" stroke="#3b82f6" stroke-width="0.8"/>
+  <line x1="2" y1="20" x2="30" y2="20" stroke="#3b82f6" stroke-width="0.8"/>
+  <line x1="2" y1="24" x2="30" y2="24" stroke="#3b82f6" stroke-width="0.8"/>
+  
+  <!-- Subject blocks with different colors -->
+  <!-- Math class -->
+  <rect x="6.5" y="12.5" width="3" height="3" fill="#ef4444" rx="0.5"/>
+  <text x="8" y="14" font-family="Arial, sans-serif" font-size="2" fill="white" text-anchor="middle">M</text>
+  
+  <!-- Science class -->
+  <rect x="10.5" y="12.5" width="3" height="3" fill="#10b981" rx="0.5"/>
+  <text x="12" y="14" font-family="Arial, sans-serif" font-size="2" fill="white" text-anchor="middle">S</text>
+  
+  <!-- English class -->
+  <rect x="14.5" y="12.5" width="3" height="3" fill="#f59e0b" rx="0.5"/>
+  <text x="16" y="14" font-family="Arial, sans-serif" font-size="2" fill="white" text-anchor="middle">E</text>
+  
+  <!-- History class -->
+  <rect x="18.5" y="12.5" width="3" height="3" fill="#8b5cf6" rx="0.5"/>
+  <text x="20" y="14" font-family="Arial, sans-serif" font-size="2" fill="white" text-anchor="middle">H</text>
+  
+  <!-- More classes in different time slots -->
+  <rect x="6.5" y="16.5" width="3" height="3" fill="#06b6d4" rx="0.5"/>
+  <text x="8" y="18" font-family="Arial, sans-serif" font-size="2" fill="white" text-anchor="middle">P</text>
+  
+  <rect x="14.5" y="16.5" width="3" height="3" fill="#ec4899" rx="0.5"/>
+  <text x="16" y="18" font-family="Arial, sans-serif" font-size="2" fill="white" text-anchor="middle">A</text>
+  
+  <rect x="10.5" y="20.5" width="3" height="3" fill="#84cc16" rx="0.5"/>
+  <text x="12" y="22" font-family="Arial, sans-serif" font-size="2" fill="white" text-anchor="middle">C</text>
+  
+  <rect x="18.5" y="20.5" width="3" height="3" fill="#f97316" rx="0.5"/>
+  <text x="20" y="22" font-family="Arial, sans-serif" font-size="2" fill="white" text-anchor="middle">L</text>
+  
+  <!-- Books on the side -->
+  <!-- Book 1 -->
+  <rect x="1" y="2" width="2" height="3" fill="#1d4ed8" rx="0.3"/>
+  <line x1="1.5" y1="2.5" x2="2.5" y2="2.5" stroke="white" stroke-width="0.2"/>
+  <line x1="1.5" y1="3" x2="2.5" y2="3" stroke="white" stroke-width="0.2"/>
+  
+  <!-- Book 2 -->
+  <rect x="29" y="2" width="2" height="3" fill="#2563eb" rx="0.3"/>
+  <line x1="29.5" y1="2.5" x2="30.5" y2="2.5" stroke="white" stroke-width="0.2"/>
+  <line x1="29.5" y1="3" x2="30.5" y2="3" stroke="white" stroke-width="0.2"/>
+  
+  <!-- Clock icon in corner -->
+  <circle cx="26" cy="6" r="2" fill="white" stroke="#1d4ed8" stroke-width="0.5"/>
+  <line x1="26" y1="6" x2="26" y2="5" stroke="#1d4ed8" stroke-width="0.5"/>
+  <line x1="26" y1="6" x2="27" y2="6" stroke="#1d4ed8" stroke-width="0.5"/>
+  <circle cx="26" cy="6" r="0.3" fill="#1d4ed8"/>
+</svg>

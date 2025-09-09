@@ -1,0 +1,131 @@
+/**
+ * Global CSS Styles and Tailwind Imports
+ * 
+ * This file contains the base styles for the entire application.
+ * It imports Tailwind CSS utilities and defines global styling rules.
+ * 
+ * Structure:
+ * - Tailwind CSS imports
+ * - Global base styles
+ * - Custom component styles
+ * - Utility classes
+ */
+
+/* Import Tailwind CSS framework layers */
+@tailwind base;    /* Reset and base styles */
+@tailwind components; /* Component classes */
+@tailwind utilities;  /* Utility classes */
+
+/* Global base styles for consistent appearance across the application */
+@layer base {
+  /* Ensure all elements use border-box sizing for predictable layouts */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Enable smooth scrolling behavior for better user experience */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Global body styles for consistent typography and appearance */
+  body {
+    margin: 0; /* Remove default margin */
+    /* System font stack for optimal performance and native feel */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    /* Font smoothing for crisp text rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Light gray background for the entire application */
+    background-color: #f8fafc;
+  }
+
+  /* Custom scrollbar styling for better user experience */
+  /* Webkit scrollbar (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 6px; /* Thin scrollbar width */
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9; /* Light gray track background */
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* Medium gray scrollbar thumb */
+    border-radius: 3px; /* Rounded corners */
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* Darker gray on hover */
+  }
+}
+
+/* Custom component styles using Tailwind's component layer */
+@layer components {
+  /* Professional card component styling for statistics and content */
+  .stat-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200;
+    /* White background, rounded corners, subtle shadow, hover effect */
+  }
+
+  /* Sidebar navigation item styling for consistent navigation appearance */
+  .nav-item {
+    @apply flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 cursor-pointer;
+    /* Flex layout, padding, semi-transparent text, hover effects */
+  }
+
+  /* Active state for navigation items */
+  .nav-item.active {
+    @apply text-white bg-white/20 shadow-sm;
+    /* Full white text, semi-transparent background, subtle shadow */
+  }
+
+  /* Primary button component for main actions */
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 font-medium;
+    /* Primary color background, hover state, white text, smooth transitions */
+  }
+
+  /* Secondary button component for less important actions */
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 font-medium;
+    /* Gray background, hover state, dark text, smooth transitions */
+  }
+}
+
+/* Custom utility classes for text truncation and line clamping */
+@layer utilities {
+  /* Utility for truncating text to 2 lines with ellipsis */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Limit to 2 lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* Utility for truncating text to 3 lines with ellipsis */
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* Limit to 3 lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* Utility for truncating text to 4 lines with ellipsis */
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4; /* Limit to 4 lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* Utility for truncating text to 5 lines with ellipsis */
+  .line-clamp-5 {
+    display: -webkit-box;
+    -webkit-line-clamp: 5; /* Limit to 5 lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
