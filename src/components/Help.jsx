@@ -13,7 +13,7 @@
  */
 
 // Import React and useState hook for state management
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 // Import Lucide React icons for UI elements
 import { HelpCircle, Search, Book, MessageCircle, Mail, ChevronDown, ChevronRight } from 'lucide-react'
 
@@ -31,6 +31,10 @@ const Help = () => {
   const [searchTerm, setSearchTerm] = useState('')
   // State for tracking which FAQ item is expanded
   const [expandedFaq, setExpandedFaq] = useState(null)
+  // State for search results dropdown
+  const [showSearchResults, setShowSearchResults] = useState(false)
+  // Ref for search input
+  const searchRef = useRef(null)
 
   // FAQ data relevant to our timetable app
   // Each FAQ object contains an id, question, and detailed answer
@@ -62,6 +66,22 @@ const Help = () => {
     }
   ]
 
+  // Additional searchable content
+  const searchableContent = [
+    { type: 'FAQ', title: 'View Timetable', content: 'Navigate to the Timetable page from the sidebar' },
+    { type: 'FAQ', title: 'Weekend View', content: 'Enable weekends in timetable settings' },
+    { type: 'FAQ', title: 'Lunch Break', content: 'Monday and Sunday are holidays with no lunch break' },
+    { type: 'FAQ', title: 'Default View', content: 'Change default timetable view in settings' },
+    { type: 'FAQ', title: 'Time Slots', content: 'Customize start and end times in settings' },
+    { type: 'Guide', title: 'Dashboard', content: 'View semester overview and statistics' },
+    { type: 'Guide', title: 'Timetable Views', content: 'Weekly, Daily, and List view options' },
+    { type: 'Guide', title: 'Settings', content: 'Customize preferences and notifications' },
+    { type: 'Guide', title: 'Help', content: 'Find answers to common questions' },
+    { type: 'Contact', title: 'Email Support', content: 'Contact via noel.regis04@gmail.com' },
+    { type: 'Contact', title: 'Alternative Email', content: 'Contact via mdrakqibalam@gmail.com' },
+    { type: 'App', title: 'Version', content: 'Current app version is 1.0.0' }
+  ]
+
   /**
    * Filter FAQs based on search term
    * Searches both question and answer text for matches
@@ -72,6 +92,63 @@ const Help = () => {
     faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
     faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  /**
+   * Filter searchable content based on search term
+   * Searches title and content for matches
+   * 
+   * @returns {Array} - Filtered array of searchable content
+   */
+  const filteredSearchResults = searchableContent.filter(item =>
+    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.content.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  /**
+   * Handle search input changes
+   * Shows/hides search results dropdown based on input
+   * 
+   * @param {Event} e - Input change event
+   */
+  const handleSearchChange = (e) => {
+    const value = e.target.value
+    setSearchTerm(value)
+    setShowSearchResults(value.length > 0)
+  }
+
+  /**
+   * Handle search result selection
+   * Closes dropdown and focuses on selected item
+   * 
+   * @param {Object} item - Selected search result item
+   */
+  const handleSearchResultClick = (item) => {
+    setSearchTerm(item.title)
+    setShowSearchResults(false)
+    // Scroll to relevant section if it's a FAQ
+    if (item.type === 'FAQ') {
+      const faqId = faqs.find(faq => faq.question.toLowerCase().includes(item.title.toLowerCase()))?.id
+      if (faqId) {
+        setExpandedFaq(faqId)
+      }
+    }
+  }
+
+  /**
+   * Handle click outside search to close dropdown
+   */
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   /**
    * Toggle FAQ expansion
@@ -86,7 +163,7 @@ const Help = () => {
 
   return (
     // Main help page container with padding and background
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="min-h-full">
       {/* Page Header Section */}
       <div className="mb-8">
         {/* Main help page title */}
@@ -98,18 +175,60 @@ const Help = () => {
       </div>
 
       {/* Search Bar Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-8">
-        <div className="relative max-w-2xl mx-auto">
+      <div className="mb-8">
+        <div className="relative w-full" ref={searchRef}>
           {/* Search icon positioned absolutely */}
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          {/* Search input field */}
+          {/* Search input field with pill-shaped design */}
           <input
             type="text"
-            placeholder="Search for help topics or FAQs..."
+            placeholder="Search item"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            onChange={handleSearchChange}
+            className="w-full pl-12 pr-4 py-3 border border-blue-200 rounded-full text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
           />
+          
+          {/* Search Results Dropdown */}
+          {showSearchResults && filteredSearchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+              {filteredSearchResults.map((item, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSearchResultClick(item)}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-1">
+                      {item.type === 'FAQ' && <HelpCircle className="w-4 h-4 text-blue-500" />}
+                      {item.type === 'Guide' && <Book className="w-4 h-4 text-green-500" />}
+                      {item.type === 'Contact' && <Mail className="w-4 h-4 text-purple-500" />}
+                      {item.type === 'App' && <MessageCircle className="w-4 h-4 text-orange-500" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">
+                        {item.title}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {item.content}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {item.type}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {/* No Results Message */}
+          {showSearchResults && filteredSearchResults.length === 0 && searchTerm.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+              <div className="px-4 py-3 text-center text-gray-500">
+                No results found for "{searchTerm}"
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

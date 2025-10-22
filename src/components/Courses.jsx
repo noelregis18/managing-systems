@@ -14,9 +14,9 @@
  */
 
 // Import React and useState hook for state management
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 // Import Lucide React icons for UI elements
-import { BookOpen, Plus, Search, Edit, Trash2, Clock, Users } from 'lucide-react'
+import { BookOpen, Plus, Search, Edit, Trash2, Clock, Users, ChevronDown } from 'lucide-react'
 
 /**
  * Courses Component
@@ -159,6 +159,27 @@ const Courses = () => {
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments')
   const [isEditing, setIsEditing] = useState(false)
   const [editingCourse, setEditingCourse] = useState(null)
+  const [isDepartmentDropdownOpen, setIsDepartmentDropdownOpen] = useState(false)  // Department dropdown open state
+
+  // Departments for dropdown
+  const departments = ['All Departments', 'CSE / Core', 'CSE / Engineering Science', 'CSE / Lab', 'Humanities/Management', 'Department Elective', 'Mandatory (MC)']
+
+  // Ref for department dropdown
+  const departmentDropdownRef = useRef(null)
+
+  // Handle click outside to close department dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (departmentDropdownRef.current && !departmentDropdownRef.current.contains(event.target)) {
+        setIsDepartmentDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   /**
    * Filter courses based on search term and selected department
@@ -198,7 +219,7 @@ const Courses = () => {
   }
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="min-h-full">
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -261,23 +282,39 @@ const Courses = () => {
               placeholder="Search courses, instructors, or departments..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white shadow-sm hover:shadow-md"
             />
           </div>
           <div className="flex space-x-3">
-            <select 
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500"
-            >
-              <option>All Departments</option>
-              <option>CSE / Core</option>
-              <option>CSE / Engineering Science</option>
-              <option>CSE / Lab</option>
-              <option>Humanities/Management</option>
-              <option>Department Elective</option>
-              <option>Mandatory (MC)</option>
-            </select>
+            <div className="relative" ref={departmentDropdownRef}>
+              <button
+                onClick={() => setIsDepartmentDropdownOpen(!isDepartmentDropdownOpen)}
+                className="border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white shadow-sm hover:shadow-md text-gray-700 font-medium flex items-center space-x-2 min-w-[180px]"
+                aria-label="Select Department"
+              >
+                <span>{selectedDepartment}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDepartmentDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isDepartmentDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+                  {departments.map((department) => (
+                    <button
+                      key={department}
+                      onClick={() => {
+                        setSelectedDepartment(department)
+                        setIsDepartmentDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors duration-200 ${
+                        selectedDepartment === department ? 'bg-primary-50 text-primary-700 font-medium' : ''
+                      }`}
+                    >
+                      {department}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -354,58 +391,65 @@ const Courses = () => {
 
       {isEditing && editingCourse && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+          <div className="bg-white rounded-lg p-8 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Course</h3>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Course Name</label>
-                <input
-                  type="text"
-                  value={editingCourse.name}
-                  onChange={(e) => setEditingCourse({ ...editingCourse, name: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                />
+            <div className="space-y-6">
+              {/* First row - Course Name and Code */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Course Name</label>
+                  <input
+                    type="text"
+                    value={editingCourse.name}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, name: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                  <input
+                    type="text"
+                    value={editingCourse.code}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, code: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
-                <input
-                  type="text"
-                  value={editingCourse.code}
-                  onChange={(e) => setEditingCourse({ ...editingCourse, code: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                />
+              {/* Second row - Instructor and Department */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Instructor (Teacher Name)</label>
+                  <input
+                    type="text"
+                    value={editingCourse.instructor}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, instructor: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                    placeholder="e.g., John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <select
+                    value={editingCourse.department}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, department: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option>CSE / Core</option>
+                    <option>CSE / Engineering Science</option>
+                    <option>CSE / Lab</option>
+                    <option>Humanities/Management</option>
+                    <option>Department Elective</option>
+                    <option>Mandatory (MC)</option>
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Instructor (Teacher Name)</label>
-                <input
-                  type="text"
-                  value={editingCourse.instructor}
-                  onChange={(e) => setEditingCourse({ ...editingCourse, instructor: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                  placeholder="e.g., John Doe"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                <select
-                  value={editingCourse.department}
-                  onChange={(e) => setEditingCourse({ ...editingCourse, department: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                >
-                  <option>CSE / Core</option>
-                  <option>CSE / Engineering Science</option>
-                  <option>CSE / Lab</option>
-                  <option>Humanities/Management</option>
-                  <option>Department Elective</option>
-                  <option>Mandatory (MC)</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              {/* Third row - Credits and Students */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Credits</label>
                   <input
@@ -426,24 +470,27 @@ const Courses = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                <input
-                  type="text"
-                  value={editingCourse.duration}
-                  onChange={(e) => setEditingCourse({ ...editingCourse, duration: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
+              {/* Fourth row - Duration and Semester */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                  <input
+                    type="text"
+                    value={editingCourse.duration}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, duration: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
-                <input
-                  type="text"
-                  value={editingCourse.semester}
-                  onChange={(e) => setEditingCourse({ ...editingCourse, semester: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+                  <input
+                    type="text"
+                    value={editingCourse.semester}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, semester: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
               </div>
             </div>
 

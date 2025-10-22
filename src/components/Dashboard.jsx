@@ -99,7 +99,7 @@ const Dashboard = () => {
    * Navigate to the Timetable page (for lab sessions)
    */
   const handleLabSessions = () => {
-    navigate('/timetable')
+    navigate('/timetable', { state: { highlightLabs: true } })
   }
 
   /**
@@ -127,7 +127,7 @@ const Dashboard = () => {
 
   return (
     // Main dashboard container with padding and background
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="h-full overflow-hidden">
       {/* Page Header Section */}
       <div className="mb-8">
         {/* Main dashboard title */}

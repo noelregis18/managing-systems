@@ -26,7 +26,6 @@ import {
   BookOpen,         // Courses icon
   Building,         // Rooms icon
   Users,            // Users icon (if needed)
-  Settings,         // Settings icon
   HelpCircle,       // Help icon
   LogOut            // Logout icon
 } from 'lucide-react'
@@ -58,7 +57,6 @@ const Sidebar = ({ activePage, setActivePage }) => {
     { id: 'timetable', label: 'Timetable', icon: Calendar, path: '/timetable' },
     { id: 'courses', label: 'Courses', icon: BookOpen, path: '/courses' },
     { id: 'rooms', label: 'Rooms', icon: Building, path: '/rooms' },
-    { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
     { id: 'help', label: 'Help', icon: HelpCircle, path: '/help' },
   ]
 

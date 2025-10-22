@@ -14,9 +14,9 @@
  */
 
 // Import React and useState hook for state management
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 // Import Lucide React icons for UI elements
-import { Building, Plus, Search, Edit, Trash2, MapPin, Users, Wifi } from 'lucide-react'
+import { Building, Plus, Search, Edit, Trash2, MapPin, Users, Wifi, ChevronDown } from 'lucide-react'
 // Import useNavigate hook for programmatic navigation
 import { useNavigate } from 'react-router-dom'
 
@@ -136,6 +136,27 @@ const Rooms = () => {
   // State for search and filter functionality
   const [searchTerm, setSearchTerm] = useState('')             // Search term for filtering rooms
   const [selectedRoomType, setSelectedRoomType] = useState('All Types') // Selected room type filter
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)  // Dropdown open state
+
+  // Room types for dropdown
+  const roomTypes = ['All Types', 'Lecture Hall', 'Computer Lab', 'Library', 'Training Room']
+
+  // Ref for dropdown
+  const dropdownRef = useRef(null)
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   /**
    * Filter rooms based on search term and selected room type
@@ -287,7 +308,7 @@ const Rooms = () => {
   }
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="min-h-full">
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -299,10 +320,10 @@ const Rooms = () => {
           </div>
           <button 
             onClick={handleAddRoom}
-            className="btn-primary flex items-center"
+            className="btn-primary flex items-center px-6 py-3 text-base font-medium"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Room
+            <Plus className="w-5 h-5 mr-2" />
+            Add New Room
           </button>
         </div>
       </div>
@@ -353,21 +374,38 @@ const Rooms = () => {
               placeholder="Search rooms, buildings, or types..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white shadow-sm hover:shadow-md"
             />
           </div>
           <div className="flex space-x-3">
-            <select 
-              value={selectedRoomType}
-              onChange={(e) => setSelectedRoomType(e.target.value)}
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500"
-            >
-              <option>All Types</option>
-              <option>Lecture Hall</option>
-              <option>Computer Lab</option>
-              <option>Library</option>
-              <option>Training Room</option>
-            </select>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white shadow-sm hover:shadow-md text-gray-700 font-medium flex items-center space-x-2 min-w-[140px]"
+              >
+                <span>{selectedRoomType}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+                  {roomTypes.map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        setSelectedRoomType(type)
+                        setIsDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors duration-200 ${
+                        selectedRoomType === type ? 'bg-primary-50 text-primary-700 font-medium' : ''
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -535,80 +573,90 @@ const Rooms = () => {
       {/* Add Room Modal */}
       {isAddingRoom && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-8 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Room</h3>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Room Name *</label>
-                <input
-                  type="text"
-                  value={newRoom.name}
-                  onChange={(e) => setNewRoom({...newRoom, name: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                  placeholder="Enter room name"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-                <input
-                  type="number"
-                  value={newRoom.capacity}
-                  onChange={(e) => setNewRoom({...newRoom, capacity: parseInt(e.target.value) || 65})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <select
-                  value={newRoom.type}
-                  onChange={(e) => setNewRoom({...newRoom, type: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                >
-                  <option>Lecture Hall</option>
-                  <option>Computer Lab</option>
-                  <option>Library</option>
-                  <option>Training Room</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select
-                  value={newRoom.status}
-                  onChange={(e) => setNewRoom({...newRoom, status: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                >
-                  <option>Available</option>
-                  <option>Occupied</option>
-                  <option>Maintenance</option>
-                </select>
+            <div className="space-y-6">
+              {/* First row - Room Name and Capacity */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Room Name *</label>
+                  <input
+                    type="text"
+                    value={newRoom.name}
+                    onChange={(e) => setNewRoom({...newRoom, name: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                    placeholder="Enter room name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                  <input
+                    type="number"
+                    value={newRoom.capacity}
+                    onChange={(e) => setNewRoom({...newRoom, capacity: parseInt(e.target.value) || 65})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
-                <input
-                  type="text"
-                  value={newRoom.schedule}
-                  onChange={(e) => setNewRoom({...newRoom, schedule: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                  placeholder="e.g., Monday to Friday, 9:00 AM - 5:00 PM"
-                />
+              {/* Second row - Type and Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select
+                    value={newRoom.type}
+                    onChange={(e) => setNewRoom({...newRoom, type: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option>Lecture Hall</option>
+                    <option>Computer Lab</option>
+                    <option>Library</option>
+                    <option>Training Room</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={newRoom.status}
+                    onChange={(e) => setNewRoom({...newRoom, status: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option>Available</option>
+                    <option>Occupied</option>
+                    <option>Maintenance</option>
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Instructors</label>
-                <input
-                  type="text"
-                  value={newRoom.instructors}
-                  onChange={(e) => setNewRoom({...newRoom, instructors: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
-                  placeholder="e.g., John Doe, Jane Smith"
-                />
+              {/* Third row - Schedule and Instructors */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
+                  <input
+                    type="text"
+                    value={newRoom.schedule}
+                    onChange={(e) => setNewRoom({...newRoom, schedule: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                    placeholder="e.g., Monday to Friday, 9:00 AM - 5:00 PM"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Instructors</label>
+                  <input
+                    type="text"
+                    value={newRoom.instructors}
+                    onChange={(e) => setNewRoom({...newRoom, instructors: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500"
+                    placeholder="e.g., John Doe, Jane Smith"
+                  />
+                </div>
               </div>
 
+              {/* Fourth row - Subjects (full width) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Subjects</label>
                 <div className="flex space-x-2 mb-2">
@@ -620,7 +668,7 @@ const Rooms = () => {
                   />
                   <button
                     onClick={handleAddSubject}
-                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
                     Add
                   </button>

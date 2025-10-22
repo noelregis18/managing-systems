@@ -19,16 +19,19 @@ const Navbar = () => {
   const { isSignedIn } = useUser()
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-100">
+    <nav className="bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200/50 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-primary-600 rounded-lg">
-              <Calendar className="w-6 h-6 text-white" />
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-lg ring-4 ring-primary-100/50">
+              <Calendar className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Timetable Manager</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                Timetable Manager
+              </h1>
+              <p className="text-xs text-gray-500 font-medium -mt-1">Smart Schedule Management</p>
             </div>
           </div>
 
@@ -36,9 +39,10 @@ const Navbar = () => {
           <div className="flex items-center space-x-4">
             {!isSignedIn && (
               <SignInButton mode="modal">
-                <button className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md">
-                  <LogIn className="w-4 h-4 mr-2" />
+                <button className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform">
+                  <LogIn className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
                   Sign In
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </button>
               </SignInButton>
             )}

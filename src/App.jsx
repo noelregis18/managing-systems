@@ -25,7 +25,6 @@ import Dashboard from './components/Dashboard' // Main dashboard page
 import Timetable from './components/Timetable' // Timetable management
 import Courses from './components/Courses' // Course management
 import Rooms from './components/Rooms' // Room management
-import Settings from './components/Settings' // Application settings
 import Help from './components/Help' // Help and documentation
 import LandingPage from './components/LandingPage' // Landing page for unauthenticated users
 
@@ -72,10 +71,10 @@ function App() {
       {/* Passes active page state and setter function to sidebar */}
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
       
-      {/* Main Content Area - Takes remaining space */}
-      <main className="flex-1 overflow-hidden">
+      {/* Main Content Area - Takes remaining space with proper spacing */}
+      <main className="flex-1 overflow-hidden bg-gray-100">
         {/* Scrollable container for main content */}
-        <div className="h-full overflow-auto">
+        <div className="h-full overflow-auto px-8 py-8">
           {/* React Router Routes configuration */}
           <Routes>
             {/* Define all application routes */}
@@ -89,8 +88,6 @@ function App() {
             <Route path="/courses" element={<Courses />} />
             {/* Rooms route for room management */}
             <Route path="/rooms" element={<Rooms />} />
-            {/* Settings route for application configuration */}
-            <Route path="/settings" element={<Settings />} />
             {/* Help route for documentation and support */}
             <Route path="/help" element={<Help />} />
           </Routes>

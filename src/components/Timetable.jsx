@@ -14,8 +14,10 @@
 
 // Import React and useState hook for state management
 import React, { useState, useEffect, useRef } from 'react'
+// Import useLocation hook to get navigation state
+import { useLocation } from 'react-router-dom'
 // Import Lucide React icons for UI elements
-import { Calendar, Clock, MapPin, Users, Settings, Eye, EyeOff, Edit } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, Settings, Eye, EyeOff, Edit, ChevronDown } from 'lucide-react'
 import { useUser } from '@clerk/clerk-react'
 import { loadUserTimetable, upsertUserTimetable } from '../services/timetableService'
 
@@ -30,10 +32,58 @@ import { loadUserTimetable, upsertUserTimetable } from '../services/timetableSer
  */
 const Timetable = () => {
   const { user, isSignedIn } = useUser()
+  const location = useLocation()
+  
   // State management for view preferences
   const [view, setView] = useState('weekly')           // Current view mode
   const [showWeekends, setShowWeekends] = useState(false) // Weekend visibility toggle
   const [section, setSection] = useState('CSE B')      // Selected section: CSE A | CSE B | CSE C
+  const [isSectionDropdownOpen, setIsSectionDropdownOpen] = useState(false)  // Section dropdown open state
+  const [highlightLabs, setHighlightLabs] = useState(false)  // State to highlight lab sessions
+
+  // Sections for dropdown
+  const sections = ['CSE A', 'CSE B', 'CSE C']
+
+  // Ref for section dropdown
+  const sectionDropdownRef = useRef(null)
+
+  // Handle click outside to close section dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sectionDropdownRef.current && !sectionDropdownRef.current.contains(event.target)) {
+        setIsSectionDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  // Handle navigation state for lab highlighting
+  useEffect(() => {
+    if (location.state?.highlightLabs) {
+      setHighlightLabs(true)
+      
+      // Scroll to lab sessions area after a short delay
+      setTimeout(() => {
+        const labSessions = document.querySelectorAll('[data-time="14:30-15:20"], [data-time="15:20-16:10"], [data-time="16:10-17:00"]')
+        if (labSessions.length > 0) {
+          labSessions[0].scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          })
+        }
+      }, 500)
+      
+      // Auto-clear the highlight after 30 seconds
+      const timer = setTimeout(() => {
+        setHighlightLabs(false)
+      }, 30000)
+      return () => clearTimeout(timer)
+    }
+  }, [location.state])
 
   // Timetable data for 5th Semester CSE A
   const timetableDataA = {
@@ -407,7 +457,7 @@ const Timetable = () => {
         </thead>
         <tbody>
           {timeSlots.map((time) => (
-            <tr key={time} className="border-b border-gray-200">
+            <tr key={time} className="border-b border-gray-200" data-time={time}>
               <td className="p-4 font-bold text-gray-700 text-xs sticky left-0 bg-white z-10 border-r border-gray-200">
                 <div className="truncate">{time}</div>
               </td>
@@ -453,11 +503,21 @@ const Timetable = () => {
                   )
                 }
 
+                // Check if this is an afternoon lab session (after lunch break)
+                const isAfternoonLab = classData.course.includes('LAB') && 
+                  (time === '14:30-15:20' || time === '15:20-16:10' || time === '16:10-17:00')
+                
                 return (
                   <td key={day} className={`p-3 border border-gray-200 ${
                     (day === 'Sunday' || day === 'Monday') ? 'bg-gray-100' : ''
                   }`}>
-                    <div className="h-52 p-4 rounded-lg bg-blue-50 border border-blue-200 flex flex-col justify-between relative">
+                    <div className={`h-52 p-4 rounded-lg flex flex-col justify-between relative transition-all duration-700 ${
+                      isAfternoonLab && highlightLabs 
+                        ? 'bg-green-200 border-4 border-green-500 shadow-2xl transform scale-110 ring-4 ring-green-300 animate-pulse' 
+                        : classData.course.includes('LAB') && highlightLabs
+                        ? 'bg-green-100 border-2 border-green-400 shadow-lg transform scale-105'
+                        : 'bg-blue-50 border border-blue-200'
+                    }`}>
                       <button
                         onClick={() => openEditPeriod(day, time)}
                         className="absolute top-2 right-2 p-1.5 rounded-md bg-white/80 hover:bg-white border border-blue-200"
@@ -465,19 +525,31 @@ const Timetable = () => {
                       >
                         <Edit className="w-4 h-4 text-blue-700" />
                       </button>
-                      <div className="font-bold text-sm mb-2 text-blue-900 leading-tight truncate">
+                      <div className={`font-bold text-sm mb-2 leading-tight truncate ${
+                        isAfternoonLab && highlightLabs ? 'text-green-900' : 'text-blue-900'
+                      }`}>
                         {classData.course}
                       </div>
-                      <div className="font-semibold text-sm mb-2 text-blue-900 leading-tight line-clamp-3">
+                      <div className={`font-semibold text-sm mb-2 leading-tight line-clamp-3 ${
+                        isAfternoonLab && highlightLabs ? 'text-green-900' : 'text-blue-900'
+                      }`}>
                         {classData.subject}
                       </div>
-                      <div className="text-xs text-blue-700 font-medium leading-tight line-clamp-3 mb-2">
+                      <div className={`text-xs font-medium leading-tight line-clamp-3 mb-2 ${
+                        isAfternoonLab && highlightLabs ? 'text-green-800' : 'text-blue-700'
+                      }`}>
                         {classData.instructor}
                       </div>
                       {/* Lab sessions have special styling */}
                       {classData.course.includes('LAB') && (
-                        <div className="mt-auto text-xs bg-green-100 text-green-800 px-3 py-1.5 rounded-full font-bold text-center">
-                          LAB
+                        <div className={`mt-auto text-xs px-3 py-1.5 rounded-full font-bold text-center ${
+                          isAfternoonLab && highlightLabs
+                            ? 'bg-green-300 text-green-900 animate-bounce shadow-lg' 
+                            : highlightLabs
+                            ? 'bg-green-200 text-green-900 animate-pulse' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {isAfternoonLab && highlightLabs ? '🔬 LAB' : 'LAB'}
                         </div>
                       )}
                     </div>
@@ -535,20 +607,22 @@ const Timetable = () => {
 
               return (
                 <div key={time} className="p-6 rounded-lg bg-blue-50 border-2 border-blue-200">
-                  <div className="flex items-start">
-                    <div className="font-bold text-gray-700 text-sm mr-6 flex-shrink-0">{time}</div>
-                    <div className="flex-1">
-                      <div className="font-bold text-sm text-blue-900 mb-2">{classData.course}</div>
-                      <div className="font-semibold text-sm text-blue-900 mb-2">{classData.subject}</div>
-                      <div className="text-xs text-blue-700 font-medium leading-tight mb-2">{classData.instructor}</div>
-                      <button onClick={() => openEditPeriod(day, time)} className="mt-2 text-xs px-3 py-1 rounded-md bg-white border border-blue-200 text-blue-700 hover:bg-blue-50">Edit</button>
-                      {/* Lab sessions have special styling */}
-                      {classData.course.includes('LAB') && (
-                        <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold">
-                          LAB SESSION
-                        </div>
-                      )}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start">
+                      <div className="font-bold text-gray-700 text-sm mr-6 flex-shrink-0">{time}</div>
+                      <div className="flex-1">
+                        <div className="font-bold text-sm text-blue-900 mb-2">{classData.course}</div>
+                        <div className="font-semibold text-sm text-blue-900 mb-2">{classData.subject}</div>
+                        <div className="text-xs text-blue-700 font-medium leading-tight mb-2">{classData.instructor}</div>
+                        {/* Lab sessions have special styling */}
+                        {classData.course.includes('LAB') && (
+                          <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold">
+                            LAB SESSION
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    <button onClick={() => openEditPeriod(day, time)} className="text-xs px-3 py-1 rounded-md bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 flex-shrink-0">Edit</button>
                   </div>
                 </div>
               )
@@ -560,85 +634,73 @@ const Timetable = () => {
   )
 
   const renderListView = () => (
-    <div className="w-full">
-      <table className="w-full text-gray-900">
-        <thead>
-          <tr className="border-b-2 border-gray-300">
-            <th className="p-4 text-left font-bold text-gray-800 text-base">Day</th>
-            <th className="p-4 text-left font-bold text-gray-800 text-base">Time</th>
-            <th className="p-4 text-left font-bold text-gray-800 text-base">Course</th>
-            <th className="p-4 text-left font-bold text-gray-800 text-base">Subject</th>
-            <th className="p-4 text-left font-bold text-gray-800 text-base">Instructor</th>
-          </tr>
-        </thead>
-        <tbody>
-          {days.map((day, dayIndex) => {
-            const dayEntries = timeSlots.map((time) => {
-              const classData = getClassData(day, time)
-              
-              if (time === 'LUNCH') {
-                // Show lunch break as null on Sunday and Monday (weekends)
-                if (day === 'Sunday' || day === 'Monday') {
+    <>
+      {days.map((day, dayIndex) => (
+        <div key={day} className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 ${dayIndex > 0 ? 'mt-8' : ''}`}>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">{day}</h3>
+          <div className="w-full">
+            <table className="w-full text-gray-900">
+              <thead>
+                <tr className="border-b-2 border-gray-300">
+                  <th className="p-4 text-left font-bold text-gray-800 text-base">Time</th>
+                  <th className="p-4 text-left font-bold text-gray-800 text-base">Course</th>
+                  <th className="p-4 text-left font-bold text-gray-800 text-base">Subject</th>
+                  <th className="p-4 text-left font-bold text-gray-800 text-base">Instructor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {timeSlots.map((time) => {
+                  const classData = getClassData(day, time)
+                  
+                  if (time === 'LUNCH') {
+                    // Show lunch break as null on Sunday and Monday (weekends)
+                    if (day === 'Sunday' || day === 'Monday') {
+                      return (
+                        <tr key={`${day}-${time}`} className="border-b border-gray-200">
+                          <td className="p-4 text-gray-600 text-base">{time}</td>
+                          <td className="p-4 text-gray-500 text-base" colSpan="3">
+                            No Lunch Break (Weekend)
+                          </td>
+                        </tr>
+                      )
+                    }
+                    
+                    return (
+                      <tr key={`${day}-${time}`} className="border-b border-gray-200">
+                        <td className="p-4 text-gray-600 text-base">{time}</td>
+                        <td className="p-4 text-orange-800 font-bold text-base" colSpan="3">
+                          LUNCH BREAK
+                        </td>
+                      </tr>
+                    )
+                  }
+
+                  if (!classData) {
+                    return (
+                      <tr key={`${day}-${time}`} className="border-b border-gray-200">
+                        <td className="p-4 text-gray-600 text-base">{time}</td>
+                        <td className="p-4 text-gray-500 text-base" colSpan="3">
+                          No Class
+                        </td>
+                      </tr>
+                    )
+                  }
+
                   return (
                     <tr key={`${day}-${time}`} className="border-b border-gray-200">
-                      <td className="p-4 font-bold text-gray-700 text-base">{day}</td>
                       <td className="p-4 text-gray-600 text-base">{time}</td>
-                      <td className="p-4 text-gray-500 text-base" colSpan="3">
-                        No Lunch Break (Weekend)
-                      </td>
+                      <td className="p-4 font-bold text-gray-900 text-base">{classData.course}</td>
+                      <td className="p-4 font-semibold text-gray-900 text-base">{classData.subject}</td>
+                      <td className="p-4 text-gray-600 text-base">{classData.instructor}</td>
                     </tr>
                   )
-                }
-                
-                return (
-                  <tr key={`${day}-${time}`} className="border-b border-gray-200">
-                    <td className="p-4 font-bold text-gray-700 text-base">{day}</td>
-                    <td className="p-4 text-gray-600 text-base">{time}</td>
-                    <td className="p-4 text-orange-800 font-bold text-base" colSpan="3">
-                      LUNCH BREAK
-                    </td>
-                  </tr>
-                )
-              }
-
-              if (!classData) {
-                return (
-                  <tr key={`${day}-${time}`} className="border-b border-gray-200">
-                    <td className="p-4 font-bold text-gray-700 text-base">{day}</td>
-                    <td className="p-4 text-gray-600 text-base">{time}</td>
-                    <td className="p-4 text-gray-500 text-base" colSpan="3">
-                      No Class
-                    </td>
-                  </tr>
-                )
-              }
-
-              return (
-                <tr key={`${day}-${time}`} className="border-b border-gray-200">
-                  <td className="p-4 font-bold text-gray-700 text-base">{day}</td>
-                  <td className="p-4 text-gray-600 text-base">{time}</td>
-                  <td className="p-4 font-bold text-gray-900 text-base">{classData.course}</td>
-                  <td className="p-4 font-semibold text-gray-900 text-base">{classData.subject}</td>
-                  <td className="p-4 text-gray-600 text-base">{classData.instructor}</td>
-                </tr>
-              )
-            })
-
-            return (
-              <React.Fragment key={day}>
-                {dayEntries}
-                {/* Add spacing row between days (except for the last day) */}
-                {dayIndex < days.length - 1 && (
-                  <tr className="h-6 bg-gray-50">
-                    <td colSpan="5" className="border-b-2 border-gray-300"></td>
-                  </tr>
-                )}
-              </React.Fragment>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </>
   )
 
   const renderLegend = () => (
@@ -738,7 +800,7 @@ const Timetable = () => {
   }
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="min-h-full">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -749,17 +811,34 @@ const Timetable = () => {
             </p>
           </div>
           <div className="flex flex-col items-end space-y-3">
-            <div>
-              <select
-                value={section}
-                onChange={(e) => setSection(e.target.value)}
-                className="border-2 border-gray-300 rounded-lg px-4 py-2 font-bold text-gray-700 bg-white"
+            <div className="relative" ref={sectionDropdownRef}>
+              <button
+                onClick={() => setIsSectionDropdownOpen(!isSectionDropdownOpen)}
+                className="border-2 border-gray-300 rounded-xl px-4 py-2.5 font-bold text-gray-700 bg-white hover:shadow-md transition-all duration-200 flex items-center space-x-2 min-w-[120px] focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 aria-label="Select Section"
               >
-                <option value="CSE A">CSE A</option>
-                <option value="CSE B">CSE B</option>
-                <option value="CSE C">CSE C</option>
-              </select>
+                <span>{section}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isSectionDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isSectionDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-white border-2 border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+                  {sections.map((sectionOption) => (
+                    <button
+                      key={sectionOption}
+                      onClick={() => {
+                        setSection(sectionOption)
+                        setIsSectionDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors duration-200 font-bold ${
+                        section === sectionOption ? 'bg-primary-50 text-primary-700' : ''
+                      }`}
+                    >
+                      {sectionOption}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-3 p-4 rounded-xl bg-white border-2 border-gray-200">
@@ -827,13 +906,26 @@ const Timetable = () => {
         </div>
       </div>
 
-      {/* Timetable Content */}
-      <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 p-6">
-        <div className={`${showWeekends ? 'overflow-x-auto' : ''}`}>
-          {view === 'weekly' && renderWeeklyView()}
-          {view === 'daily' && renderDailyView()}
-          {view === 'list' && renderListView()}
+      {/* Lab Sessions Highlight Banner */}
+      {highlightLabs && (
+        <div className="bg-green-100 border-2 border-green-400 rounded-xl p-4 mb-6 animate-pulse">
+          <div className="flex items-center space-x-3">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
+            <h3 className="text-lg font-bold text-green-800">🔬 Afternoon Lab Sessions Highlighted</h3>
+            <p className="text-green-700">Afternoon laboratory sessions (2:30 PM - 5:00 PM) are prominently highlighted below</p>
+          </div>
         </div>
+      )}
+
+      {/* Timetable Content */}
+      <div className={`${showWeekends ? 'overflow-x-auto' : ''}`}>
+        {view === 'weekly' && (
+          <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 p-6">
+            {renderWeeklyView()}
+          </div>
+        )}
+        {view === 'daily' && renderDailyView()}
+        {view === 'list' && renderListView()}
       </div>
 
       {/* Edit Period Modal */}
