@@ -85,13 +85,31 @@ const Help = () => {
   /**
    * Filter FAQs based on search term
    * Searches both question and answer text for matches
+   * Also matches against searchable content titles
    * 
    * @returns {Array} - Filtered array of FAQ items
    */
-  const filteredFaqs = faqs.filter(faq =>
-    faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredFaqs = searchTerm.length > 0
+    ? faqs.filter(faq => {
+        const searchLower = searchTerm.toLowerCase()
+        // Direct match in question or answer
+        const directMatch = faq.question.toLowerCase().includes(searchLower) ||
+                           faq.answer.toLowerCase().includes(searchLower)
+        
+        // Match through searchable content
+        const searchableMatch = searchableContent.some(item =>
+          item.type === 'FAQ' &&
+          (item.title.toLowerCase().includes(searchLower) ||
+           item.content.toLowerCase().includes(searchLower)) &&
+          (faq.question.toLowerCase().includes(item.title.toLowerCase()) ||
+           faq.answer.toLowerCase().includes(item.title.toLowerCase()) ||
+           faq.question.toLowerCase().includes(item.content.toLowerCase()) ||
+           faq.answer.toLowerCase().includes(item.content.toLowerCase()))
+        )
+        
+        return directMatch || searchableMatch
+      })
+    : faqs
 
   /**
    * Filter searchable content based on search term
@@ -115,6 +133,70 @@ const Help = () => {
     setSearchTerm(value)
     setShowSearchResults(value.length > 0)
   }
+  
+  /**
+   * Auto-expand matching FAQ when search term changes
+   * This effect runs whenever searchTerm changes
+   */
+  useEffect(() => {
+    if (searchTerm.length > 0) {
+      const searchLower = searchTerm.toLowerCase()
+      
+      // First, try direct match in FAQ question or answer
+      const directMatch = faqs.find(faq =>
+        faq.question.toLowerCase().includes(searchLower) ||
+        faq.answer.toLowerCase().includes(searchLower)
+      )
+      
+      if (directMatch) {
+        setExpandedFaq(directMatch.id)
+        return
+      }
+      
+      // If no direct match, try to find through searchable content
+      const searchableItem = searchableContent.find(item =>
+        item.type === 'FAQ' &&
+        (item.title.toLowerCase().includes(searchLower) ||
+         item.content.toLowerCase().includes(searchLower))
+      )
+      
+      if (searchableItem) {
+        // Map searchable content titles to FAQ IDs
+        const searchableToFaqMap = {
+          'view timetable': 1,
+          'weekend view': 2,
+          'lunch break': 3,
+          'default view': 4,
+          'time slots': 5
+        }
+        
+        const searchableTitleLower = searchableItem.title.toLowerCase()
+        const mappedFaqId = searchableToFaqMap[searchableTitleLower]
+        
+        if (mappedFaqId) {
+          setExpandedFaq(mappedFaqId)
+        } else {
+          // Fallback: try to find FAQ by matching keywords
+          const mappedFaq = faqs.find(faq => {
+            const faqText = (faq.question + ' ' + faq.answer).toLowerCase()
+            // Check if FAQ contains key words from searchable content
+            const keywords = searchableItem.content.toLowerCase().split(' ')
+            return keywords.some(keyword => 
+              keyword.length > 3 && faqText.includes(keyword)
+            )
+          })
+          
+          if (mappedFaq) {
+            setExpandedFaq(mappedFaq.id)
+          }
+        }
+      }
+    } else {
+      // Clear expanded FAQ when search is cleared
+      setExpandedFaq(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm])
 
   /**
    * Handle search result selection
@@ -127,9 +209,22 @@ const Help = () => {
     setShowSearchResults(false)
     // Scroll to relevant section if it's a FAQ
     if (item.type === 'FAQ') {
-      const faqId = faqs.find(faq => faq.question.toLowerCase().includes(item.title.toLowerCase()))?.id
+      // Try to find FAQ by matching title or content
+      const faqId = faqs.find(faq =>
+        faq.question.toLowerCase().includes(item.title.toLowerCase()) ||
+        faq.answer.toLowerCase().includes(item.title.toLowerCase()) ||
+        faq.question.toLowerCase().includes(item.content.toLowerCase()) ||
+        faq.answer.toLowerCase().includes(item.content.toLowerCase())
+      )?.id
       if (faqId) {
         setExpandedFaq(faqId)
+        // Scroll to FAQ section after a short delay
+        setTimeout(() => {
+          const faqElement = document.getElementById(`faq-${faqId}`)
+          if (faqElement) {
+            faqElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }
+        }, 100)
       }
     }
   }
@@ -261,9 +356,15 @@ const Help = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h2>
             {/* FAQ items container */}
             <div className="space-y-4">
+              {/* Show message when search has no results */}
+              {searchTerm.length > 0 && filteredFaqs.length === 0 && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 text-center">
+                  <p className="text-gray-600">No FAQs found matching "{searchTerm}"</p>
+                </div>
+              )}
               {/* Map through filtered FAQs to create expandable items */}
               {filteredFaqs.map((faq) => (
-                <div key={faq.id} className="bg-white rounded-lg shadow-sm border border-gray-100">
+                <div key={faq.id} id={`faq-${faq.id}`} className="bg-white rounded-lg shadow-sm border border-gray-100">
                   {/* FAQ question button - clickable to expand/collapse */}
                   <button
                     onClick={() => toggleFaq(faq.id)}

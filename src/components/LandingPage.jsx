@@ -22,13 +22,23 @@ import {
   BarChart3, 
   Shield,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react'
 import Navbar from './Navbar'
 import { SignInButton } from '@clerk/clerk-react'
 
 const LandingPage = () => {
-  const features = [
+  const benefits = [
+    'Automated conflict detection',
+    'Real-time schedule updates',
+    'Mobile-responsive design',
+    'Integration with existing systems',
+    '24/7 technical support',
+    'Regular feature updates'
+  ]
+
+  const statistics = [
     {
       icon: Calendar,
       title: 'Smart Timetable Management',
@@ -61,43 +71,23 @@ const LandingPage = () => {
     }
   ]
 
-  const benefits = [
-    'Automated conflict detection',
-    'Real-time schedule updates',
-    'Mobile-responsive design',
-    'Integration with existing systems',
-    '24/7 technical support',
-    'Regular feature updates'
-  ]
-
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
       {/* Navigation */}
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative isolate overflow-hidden bg-gradient-to-br from-primary-50 via-white to-white py-24">
-        {/* Decorative background accents */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary-200/50 blur-3xl"></div>
-          <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-blue-200/50 blur-3xl"></div>
-        </div>
+      <section className="bg-primary-50 py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="flex justify-center mb-8">
-              <div className="flex items-center justify-center w-20 h-20 bg-primary-600 rounded-2xl shadow-xl ring-4 ring-white/60">
-                <Calendar className="w-10 h-10 text-white" />
-              </div>
-            </div>
-            
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Streamline Your
-              <span className="text-primary-600 block">Time Table Management</span>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
+              Run your college
+              <span className="block">timetable like a pro</span>
             </h1>
             
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              The most comprehensive timetable management system for colleges and universities. 
-              Simplify scheduling, manage courses, and optimize resources with our intelligent platform.
+            <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-3xl mx-auto leading-relaxed">
+              All-in-one platform for managing courses, schedules, and resources without
+              the chaos. Experience seamless scheduling and efficient resource management.
             </p>
 
             <div className="flex justify-center">
@@ -112,91 +102,147 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-24 bg-gray-100 relative overflow-hidden">
+      {/* Statistics Section */}
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-              Everything You Need to Manage Your College
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Powerful features designed to simplify academic administration and enhance productivity.
+          <div className="text-center mb-12">
+            <p className="text-base md:text-lg text-gray-500 mb-4">
+              Why choose us?
             </p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+              The <span className="text-primary-600">Details</span> Speak
+              <span className="block">for Themselves</span>
+            </h2>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => {
-              const Icon = feature.icon
-              return (
-                <div key={index} className="group relative h-full">
-                  {/* Card with enhanced styling */}
-                  <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-105 relative overflow-hidden h-full flex flex-col">
-                    {/* Icon with enhanced styling */}
-                    <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
-                      <Icon className="w-8 h-8 text-white" />
+          
+          <div className="bg-[#F5F5F0] rounded-3xl p-8 md:p-12 shadow-lg border border-gray-200/50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0">
+              {statistics.map((stat, index) => {
+                const Icon = stat.icon
+                const isLastInRow = (index + 1) % 3 === 0
+                const isInSecondRow = index >= 3
+                const isFirstInRow = index % 3 === 0
+                return (
+                  <div 
+                    key={index} 
+                    className={`
+                      relative p-8 bg-[#F5F5F0]
+                      ${!isLastInRow ? 'border-r border-dotted border-gray-400' : ''}
+                      ${!isInSecondRow ? 'border-b border-dotted border-gray-400' : ''}
+                      ${index === 0 ? 'rounded-tl-3xl' : ''}
+                      ${index === 2 ? 'rounded-tr-3xl' : ''}
+                      ${index === 3 ? 'rounded-bl-3xl' : ''}
+                      ${index === 5 ? 'rounded-br-3xl' : ''}
+                    `}
+                  >
+                    {/* Icon */}
+                    <div className="flex justify-center mb-6">
+                      <div className="flex items-center justify-center w-16 h-16">
+                        <Icon className="w-10 h-10 text-primary-600" strokeWidth={1.5} />
+                      </div>
                     </div>
                     
-                    {/* Content */}
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-primary-700 transition-colors duration-300">
-                        {feature.title}
-                      </h3>
-                      <p className="text-gray-600 leading-relaxed text-base">
-                        {feature.description}
-                      </p>
-                    </div>
+                    {/* Title */}
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 text-center">
+                      {stat.title}
+                    </h3>
+                    
+                    {/* Description */}
+                    <p className="text-sm md:text-base text-gray-600 leading-relaxed text-center">
+                      {stat.description}
+                    </p>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         </div>
       </section>
 
       {/* Benefits Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Why Choose Timetable Manager?
-              </h2>
-              <p className="text-lg text-gray-600 mb-8">
-                Join thousands of educational institutions that trust our platform 
-                to manage their academic operations efficiently.
-              </p>
-              
-              <div className="space-y-3">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <div className="flex items-center justify-center w-6 h-6 bg-primary-600 rounded-full">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-gray-700">{benefit}</span>
+      <section className="py-20 bg-[#F5F5F0]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-base md:text-lg text-gray-500 mb-4">
+              Is this for you?
+            </p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+              This Platform Is a <span className="text-primary-600">Perfect</span> Fit If You're Ready to ...
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* This is for you */}
+            <div className="bg-primary-600 rounded-2xl p-8">
+              <h3 className="text-xl font-bold text-white mb-6">THIS IS FOR YOU IF:</h3>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-white rounded-full flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-primary-600" />
                   </div>
-                ))}
+                  <p className="text-white">You want to streamline timetable management for your college</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-white rounded-full flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-primary-600" />
+                  </div>
+                  <p className="text-white">You're tired of manual scheduling and conflict resolution</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-white rounded-full flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-primary-600" />
+                  </div>
+                  <p className="text-white">You value efficient resource allocation and room management</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-white rounded-full flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-primary-600" />
+                  </div>
+                  <p className="text-white">You need a comprehensive system to manage courses and schedules</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-white rounded-full flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-primary-600" />
+                  </div>
+                  <p className="text-white">You're ready to transform your college's academic operations</p>
+                </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
-              <div className="text-center">
-                <div className="flex justify-center mb-6">
-                  <div className="flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl shadow-md">
-                    <BarChart3 className="w-8 h-8 text-white" />
+            {/* This is not for you */}
+            <div className="bg-gray-900 rounded-2xl p-8">
+              <h3 className="text-xl font-bold text-white mb-6">THIS IS NOT FOR YOU IF:</h3>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-red-500 rounded-full flex-shrink-0 mt-0.5">
+                    <X className="w-4 h-4 text-white" />
                   </div>
+                  <p className="text-white">You prefer manual paper-based scheduling systems</p>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Ready to Transform Your College?
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Start your journey towards efficient timetable management today.
-                </p>
-                <SignInButton mode="modal">
-                  <button className="w-full inline-flex items-center justify-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors duration-200">
-                    Sign In to Dashboard
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </button>
-                </SignInButton>
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-red-500 rounded-full flex-shrink-0 mt-0.5">
+                    <X className="w-4 h-4 text-white" />
+                  </div>
+                  <p className="text-white">You don't need automated conflict detection and resolution</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-red-500 rounded-full flex-shrink-0 mt-0.5">
+                    <X className="w-4 h-4 text-white" />
+                  </div>
+                  <p className="text-white">You dislike structured, organized timetable management</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-red-500 rounded-full flex-shrink-0 mt-0.5">
+                    <X className="w-4 h-4 text-white" />
+                  </div>
+                  <p className="text-white">You just want basic scheduling without comprehensive features</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-red-500 rounded-full flex-shrink-0 mt-0.5">
+                    <X className="w-4 h-4 text-white" />
+                  </div>
+                  <p className="text-white">You're seeking a simple calendar without course management</p>
+                </div>
               </div>
             </div>
           </div>
@@ -204,52 +250,32 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden">
-        {/* Background decorative elements */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-primary-500/10 blur-3xl"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl"></div>
-        </div>
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-4 mb-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-lg ring-4 ring-primary-100/20">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  Timetable Manager
-                </h3>
-                <p className="text-sm text-gray-400 -mt-1">Smart Schedule Management</p>
-              </div>
-            </div>
-            
-            <p className="text-gray-300 mb-8 text-lg max-w-2xl mx-auto">
-              Professional Time Table Management System for Educational Excellence
-            </p>
-            
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 mb-8">
-              <div className="flex items-center space-x-2 text-gray-400">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm">System Online</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-400">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span className="text-sm">24/7 Support</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-400">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <span className="text-sm">Secure Platform</span>
-              </div>
-            </div>
-            
-            <div className="border-t border-gray-700 pt-8">
-              <p className="text-sm text-gray-500">
-                © 2025 Timetable Manager. All rights reserved. | Built with ❤️ for Education
-              </p>
-            </div>
+      <footer className="flex flex-col items-center justify-center w-full py-20 bg-gradient-to-b from-primary-600 to-primary-800 text-white/70">
+        {/* Logo/Icon */}
+        <div className="flex items-center justify-center space-x-3 mb-6">
+          <div className="flex items-center justify-center w-12 h-12 bg-white/10 rounded-2xl backdrop-blur-sm">
+            <Calendar className="w-6 h-6 text-white" />
           </div>
+          <div>
+            <h3 className="text-2xl font-bold text-white">
+              Timetable Manager
+            </h3>
+            <p className="text-sm text-white/70 -mt-1">Smart Schedule Management</p>
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="mt-4 text-center max-w-xl text-sm font-normal leading-relaxed text-white/80">
+          Professional Time Table Management System for Educational Excellence. 
+          Empowering colleges worldwide with the most advanced timetable management tools. 
+          Transform your academic scheduling into reality.
+        </p>
+
+        {/* Copyright */}
+        <div className="border-t border-white/10 w-full max-w-7xl mt-8 pt-6">
+          <p className="text-center text-sm font-normal text-white/60">
+            Copyright © 2025 <span className="text-white/80 font-semibold">Timetable Manager</span>. All rights reserved. | Built with ❤️ for Education
+          </p>
         </div>
       </footer>
     </div>

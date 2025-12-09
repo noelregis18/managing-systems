@@ -289,15 +289,15 @@ const Courses = () => {
             <div className="relative" ref={departmentDropdownRef}>
               <button
                 onClick={() => setIsDepartmentDropdownOpen(!isDepartmentDropdownOpen)}
-                className="border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white shadow-sm hover:shadow-md text-gray-700 font-medium flex items-center space-x-2 min-w-[180px]"
+                className="border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white shadow-sm hover:shadow-md text-gray-700 font-medium flex items-center space-x-2 min-w-[260px]"
                 aria-label="Select Department"
               >
-                <span>{selectedDepartment}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDepartmentDropdownOpen ? 'rotate-180' : ''}`} />
+                <span className="whitespace-nowrap overflow-hidden text-ellipsis">{selectedDepartment}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 flex-shrink-0 ${isDepartmentDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               
               {isDepartmentDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
+                <div className="absolute top-full left-0 mt-1 min-w-[260px] bg-white border border-gray-300 rounded-xl shadow-lg z-10 overflow-hidden">
                   {departments.map((department) => (
                     <button
                       key={department}
@@ -305,7 +305,7 @@ const Courses = () => {
                         setSelectedDepartment(department)
                         setIsDepartmentDropdownOpen(false)
                       }}
-                      className={`w-full text-left px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors duration-200 ${
+                      className={`w-full text-left px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors duration-200 whitespace-nowrap ${
                         selectedDepartment === department ? 'bg-primary-50 text-primary-700 font-medium' : ''
                       }`}
                     >
@@ -328,9 +328,9 @@ const Courses = () => {
                 <th className="text-left p-6 font-semibold text-gray-900">Course</th>
                 <th className="text-left p-6 font-semibold text-gray-900">Instructor</th>
                 <th className="text-left p-6 font-semibold text-gray-900">Department</th>
-                <th className="text-left p-6 font-semibold text-gray-900">Credits</th>
+                <th className="text-left p-8 font-semibold text-gray-900">Credits</th>
                 <th className="text-left p-6 font-semibold text-gray-900">Students</th>
-                <th className="text-left p-6 font-semibold text-gray-900">Duration</th>
+                <th className="text-left p-8 font-semibold text-gray-900">Duration</th>
                 <th className="text-left p-6 font-semibold text-gray-900">Actions</th>
               </tr>
             </thead>
@@ -345,13 +345,25 @@ const Courses = () => {
                   </td>
                   <td className="p-6 text-gray-900">{course.instructor}</td>
                   <td className="p-6 text-gray-600">{course.department}</td>
-                  <td className="p-6">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {course.credits} Credits
+                  <td className="p-8">
+                    <span className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-800 whitespace-nowrap">
+                      <span className="text-sm">{course.credits}</span>
+                      <span className="text-sm ml-1.5">Credits</span>
                     </span>
                   </td>
                   <td className="p-6 text-gray-900">{course.students}</td>
-                  <td className="p-6 text-gray-600">{course.duration}</td>
+                  <td className="p-8 text-gray-600 whitespace-nowrap">
+                    <span className="inline-flex items-center">
+                      {course.duration.includes(' ') ? (
+                        <>
+                          <span className="text-sm">{course.duration.split(' ')[0]}</span>
+                          <span className="text-sm ml-1.5">{course.duration.split(' ').slice(1).join(' ')}</span>
+                        </>
+                      ) : (
+                        <span className="text-sm">{course.duration}</span>
+                      )}
+                    </span>
+                  </td>
                   <td className="p-6">
                     <div className="flex space-x-2">
                       <button 
