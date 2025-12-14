@@ -17,6 +17,9 @@ yarn-error.log*         # Yarn error logs
 dist/                   # Vite build output
 dist-electron/          # Electron build output
 build/                  # Alternative build directory
+release/                # Release build output
+release-packaged/       # Packaged release files
+.vite/                  # Vite cache
 
 # =============================================================================
 # ENVIRONMENT VARIABLES
