@@ -114,7 +114,7 @@ const LandingPage = () => {
               <span className="block">for Themselves</span>
             </h2>
           </div>
-          
+
           <div className="bg-[#F5F5F0] rounded-3xl p-8 md:p-12 shadow-lg border border-gray-200/50">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0">
               {statistics.map((stat, index) => {
@@ -122,7 +122,7 @@ const LandingPage = () => {
                 const isLastInRow = (index + 1) % 3 === 0
                 const isInSecondRow = index >= 3
                 const isFirstInRow = index % 3 === 0
-                return (
+              return (
                   <div 
                     key={index} 
                     className={`
@@ -145,15 +145,15 @@ const LandingPage = () => {
                     {/* Title */}
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 text-center">
                       {stat.title}
-                    </h3>
+                      </h3>
                     
                     {/* Description */}
                     <p className="text-sm md:text-base text-gray-600 leading-relaxed text-center">
                       {stat.description}
-                    </p>
-                  </div>
-                )
-              })}
+                      </p>
+                </div>
+              )
+            })}
             </div>
           </div>
         </div>
@@ -168,7 +168,7 @@ const LandingPage = () => {
             </p>
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
               This Platform Is a <span className="text-primary-600">Perfect</span> Fit If You're Ready to ...
-            </h2>
+              </h2>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -199,7 +199,7 @@ const LandingPage = () => {
                     <CheckCircle className="w-4 h-4 text-primary-600" />
                   </div>
                   <p className="text-white">You need a comprehensive system to manage courses and schedules</p>
-                </div>
+                    </div>
                 <div className="flex items-start space-x-3">
                   <div className="flex items-center justify-center w-6 h-6 bg-white rounded-full flex-shrink-0 mt-0.5">
                     <CheckCircle className="w-4 h-4 text-primary-600" />
@@ -254,16 +254,16 @@ const LandingPage = () => {
         {/* Logo/Icon */}
         <div className="flex items-center justify-center space-x-3 mb-6">
           <div className="flex items-center justify-center w-12 h-12 bg-white/10 rounded-2xl backdrop-blur-sm">
-            <Calendar className="w-6 h-6 text-white" />
-          </div>
-          <div>
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <div>
             <h3 className="text-2xl font-bold text-white">
-              Timetable Manager
-            </h3>
+                  Timetable Manager
+                </h3>
             <p className="text-sm text-white/70 -mt-1">Smart Schedule Management</p>
-          </div>
-        </div>
-
+              </div>
+            </div>
+            
         {/* Description */}
         <p className="mt-4 text-center max-w-xl text-sm font-normal leading-relaxed text-white/80">
           Professional Time Table Management System for Educational Excellence. 
@@ -275,7 +275,7 @@ const LandingPage = () => {
         <div className="border-t border-white/10 w-full max-w-7xl mt-8 pt-6">
           <p className="text-center text-sm font-normal text-white/60">
             Copyright © 2025 <span className="text-white/80 font-semibold">Timetable Manager</span>. All rights reserved. | Built with ❤️ for Education
-          </p>
+              </p>
         </div>
       </footer>
     </div>

@@ -37,9 +37,20 @@ const Timetable = () => {
   // State management for view preferences
   const [view, setView] = useState('weekly')           // Current view mode
   const [showWeekends, setShowWeekends] = useState(false) // Weekend visibility toggle
-  const [section, setSection] = useState('CSE B')      // Selected section: CSE A | CSE B | CSE C
+  // Get section from localStorage or default to 'CSE B'
+  const [section, setSection] = useState(() => {
+    const savedSection = localStorage.getItem('selectedSection')
+    return savedSection || 'CSE B'
+  })
   const [isSectionDropdownOpen, setIsSectionDropdownOpen] = useState(false)  // Section dropdown open state
   const [highlightLabs, setHighlightLabs] = useState(false)  // State to highlight lab sessions
+  const [currentDay, setCurrentDay] = useState('')  // Current day of the week
+  const [currentPeriod, setCurrentPeriod] = useState('')  // Current time period
+
+  // Save section to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('selectedSection', section)
+  }, [section])
 
   // Sections for dropdown
   const sections = ['CSE A', 'CSE B', 'CSE C']
@@ -391,6 +402,87 @@ const Timetable = () => {
   const days = showWeekends ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] : ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
   /**
+   * Get current day name
+   */
+  const getCurrentDayName = () => {
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    return daysOfWeek[new Date().getDay()]
+  }
+
+  /**
+   * Get current time period based on current time
+   */
+  const getCurrentTimePeriod = () => {
+    const now = new Date()
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    const currentTime = currentHour * 60 + currentMinute // Convert to minutes from midnight
+
+    // Time slot mappings (in minutes from midnight)
+    // Format: 'HH:MM-HH:MM' -> { start: minutes, end: minutes }
+    const timeSlotMap = {
+      '09:30-10:20': { start: 9 * 60 + 30, end: 10 * 60 + 20 },
+      '10:20-11:10': { start: 10 * 60 + 20, end: 11 * 60 + 10 },
+      '11:10-12:00': { start: 11 * 60 + 10, end: 12 * 60 + 0 },
+      '12:00-12:50': { start: 12 * 60 + 0, end: 12 * 60 + 50 },
+      '13:40-14:30': { start: 13 * 60 + 40, end: 14 * 60 + 30 },
+      '14:30-15:20': { start: 14 * 60 + 30, end: 15 * 60 + 20 },
+      '15:20-16:10': { start: 15 * 60 + 20, end: 16 * 60 + 10 },
+      '16:10-17:00': { start: 16 * 60 + 10, end: 17 * 60 + 0 }
+    }
+
+    // Check which time slot the current time falls into
+    for (const [timeSlot, range] of Object.entries(timeSlotMap)) {
+      if (currentTime >= range.start && currentTime < range.end) {
+        return timeSlot
+      }
+    }
+
+    return null // Outside of class hours
+  }
+
+  /**
+   * Check if a time slot has ended based on current time
+   * @param {string} timeSlot - Time slot in format 'HH:MM-HH:MM'
+   * @returns {boolean} - True if the time slot has ended
+   */
+  const hasTimeSlotEnded = (timeSlot) => {
+    if (!timeSlot || timeSlot === 'LUNCH') return false
+    
+    const now = new Date()
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    const currentTime = currentHour * 60 + currentMinute // Convert to minutes from midnight
+
+    // Extract end time from time slot (format: 'HH:MM-HH:MM')
+    const parts = timeSlot.split('-')
+    if (parts.length !== 2) return false
+    
+    const endTimeStr = parts[1] // e.g., '17:00'
+    const [endHour, endMinute] = endTimeStr.split(':').map(Number)
+    const endTime = endHour * 60 + endMinute // Convert to minutes from midnight
+
+    // Check if current time is past the end time
+    return currentTime >= endTime
+  }
+
+  // Update current day and period periodically
+  useEffect(() => {
+    const updateCurrentInfo = () => {
+      setCurrentDay(getCurrentDayName())
+      setCurrentPeriod(getCurrentTimePeriod() || '')
+    }
+
+    // Update immediately
+    updateCurrentInfo()
+
+    // Update every minute
+    const interval = setInterval(updateCurrentInfo, 60000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  /**
    * Get class data for a specific day and time slot
    * 
    * @param {string} day - The day of the week
@@ -404,6 +496,7 @@ const Timetable = () => {
   // Editing state
   const [isEditingPeriod, setIsEditingPeriod] = useState(false)
   const [editingContext, setEditingContext] = useState({ day: '', time: '', course: '', subject: '', instructor: '' })
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const openEditPeriod = (day, time) => {
     if (time === 'LUNCH') return
@@ -438,6 +531,40 @@ const Timetable = () => {
       }
     })
     setIsEditingPeriod(false)
+  }
+
+  const handleDeleteClick = () => {
+    const { time } = editingContext
+    // Prevent deleting LUNCH period
+    if (time === 'LUNCH') {
+      alert('Lunch period cannot be deleted.')
+      return
+    }
+    // Show custom delete confirmation modal
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = () => {
+    const { day, time } = editingContext
+    setTimetables(prev => {
+      const sectionData = prev[section] || {}
+      const dayData = { ...(sectionData[day] || {}) }
+      // Set to null to clear the period
+      dayData[time] = null
+      return {
+        ...prev,
+        [section]: {
+          ...sectionData,
+          [day]: dayData
+        }
+      }
+    })
+    setIsEditingPeriod(false)
+    setShowDeleteConfirm(false)
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false)
   }
 
   const renderWeeklyView = () => (
@@ -503,21 +630,33 @@ const Timetable = () => {
                   )
                 }
 
-                // Check if this is an afternoon lab session (after lunch break)
-                const isAfternoonLab = classData.course.includes('LAB') && 
-                  (time === '14:30-15:20' || time === '15:20-16:10' || time === '16:10-17:00')
+                // Check if this is a lab session
+                const isLab = classData.course.includes('LAB')
+                
+                // Check if this is the current day
+                const isCurrentDay = day === currentDay
+                
+                // Check if this is the current period
+                const isCurrentPeriod = day === currentDay && time === currentPeriod
+                
+                // Highlight lab sessions only on current day and if the session hasn't ended
+                const shouldHighlightLab = isLab && isCurrentDay && !hasTimeSlotEnded(time)
+                
+                // Determine styling based on current period or lab highlighting
+                let cardClasses = 'bg-blue-50 border border-blue-200'
+                if (isCurrentPeriod) {
+                  cardClasses = 'bg-yellow-200 border-4 border-yellow-500 shadow-2xl transform scale-110 ring-4 ring-yellow-300 animate-pulse'
+                } else if (shouldHighlightLab && (time === '14:30-15:20' || time === '15:20-16:10' || time === '16:10-17:00')) {
+                  cardClasses = 'bg-green-200 border-4 border-green-500 shadow-2xl transform scale-110 ring-4 ring-green-300 animate-pulse'
+                } else if (shouldHighlightLab) {
+                  cardClasses = 'bg-green-100 border-2 border-green-400 shadow-lg transform scale-105'
+                }
                 
                 return (
                   <td key={day} className={`p-3 border border-gray-200 ${
                     (day === 'Sunday' || day === 'Monday') ? 'bg-gray-100' : ''
                   }`}>
-                    <div className={`h-52 p-4 rounded-lg flex flex-col justify-between relative transition-all duration-700 ${
-                      isAfternoonLab && highlightLabs 
-                        ? 'bg-green-200 border-4 border-green-500 shadow-2xl transform scale-110 ring-4 ring-green-300 animate-pulse' 
-                        : classData.course.includes('LAB') && highlightLabs
-                        ? 'bg-green-100 border-2 border-green-400 shadow-lg transform scale-105'
-                        : 'bg-blue-50 border border-blue-200'
-                    }`}>
+                    <div className={`h-52 p-4 rounded-lg flex flex-col justify-between relative transition-all duration-700 ${cardClasses}`}>
                       <button
                         onClick={() => openEditPeriod(day, time)}
                         className="absolute top-2 right-2 p-1.5 rounded-md bg-white/80 hover:bg-white border border-blue-200"
@@ -526,30 +665,36 @@ const Timetable = () => {
                         <Edit className="w-4 h-4 text-blue-700" />
                       </button>
                       <div className={`font-bold text-sm mb-2 leading-tight truncate ${
-                        isAfternoonLab && highlightLabs ? 'text-green-900' : 'text-blue-900'
+                        isCurrentPeriod ? 'text-yellow-900' : shouldHighlightLab && (time === '14:30-15:20' || time === '15:20-16:10' || time === '16:10-17:00') ? 'text-green-900' : shouldHighlightLab ? 'text-green-900' : 'text-blue-900'
                       }`}>
                         {classData.course}
                       </div>
                       <div className={`font-semibold text-sm mb-2 leading-tight line-clamp-3 ${
-                        isAfternoonLab && highlightLabs ? 'text-green-900' : 'text-blue-900'
+                        isCurrentPeriod ? 'text-yellow-900' : shouldHighlightLab && (time === '14:30-15:20' || time === '15:20-16:10' || time === '16:10-17:00') ? 'text-green-900' : shouldHighlightLab ? 'text-green-900' : 'text-blue-900'
                       }`}>
                         {classData.subject}
                       </div>
                       <div className={`text-xs font-medium leading-tight line-clamp-3 mb-2 ${
-                        isAfternoonLab && highlightLabs ? 'text-green-800' : 'text-blue-700'
+                        isCurrentPeriod ? 'text-yellow-800' : shouldHighlightLab && (time === '14:30-15:20' || time === '15:20-16:10' || time === '16:10-17:00') ? 'text-green-800' : shouldHighlightLab ? 'text-green-800' : 'text-blue-700'
                       }`}>
                         {classData.instructor}
                       </div>
+                      {/* Current period indicator */}
+                      {isCurrentPeriod && (
+                        <div className="mt-auto text-xs px-3 py-1.5 rounded-full font-bold text-center bg-yellow-400 text-yellow-900 animate-bounce shadow-lg">
+                          ⏰ CURRENT
+                        </div>
+                      )}
                       {/* Lab sessions have special styling */}
-                      {classData.course.includes('LAB') && (
+                      {isLab && !isCurrentPeriod && (
                         <div className={`mt-auto text-xs px-3 py-1.5 rounded-full font-bold text-center ${
-                          isAfternoonLab && highlightLabs
+                          shouldHighlightLab && (time === '14:30-15:20' || time === '15:20-16:10' || time === '16:10-17:00')
                             ? 'bg-green-300 text-green-900 animate-bounce shadow-lg' 
-                            : highlightLabs
+                            : shouldHighlightLab
                             ? 'bg-green-200 text-green-900 animate-pulse' 
                             : 'bg-green-100 text-green-800'
                         }`}>
-                          {isAfternoonLab && highlightLabs ? '🔬 LAB' : 'LAB'}
+                          {shouldHighlightLab && (time === '14:30-15:20' || time === '15:20-16:10' || time === '16:10-17:00') ? '🔬 LAB' : 'LAB'}
                         </div>
                       )}
                     </div>
@@ -605,19 +750,49 @@ const Timetable = () => {
                 )
               }
 
+              // Check if this is a lab session
+              const isLab = classData.course.includes('LAB')
+              
+              // Check if this is the current day
+              const isCurrentDay = day === currentDay
+              
+              // Check if this is the current period
+              const isCurrentPeriod = day === currentDay && time === currentPeriod
+              
+              // Highlight lab sessions only on current day and if the session hasn't ended
+              const shouldHighlightLab = isLab && isCurrentDay && !hasTimeSlotEnded(time)
+              
+              // Determine styling based on current period or lab highlighting
+              let cardClasses = 'bg-blue-50 border-2 border-blue-200'
+              if (isCurrentPeriod) {
+                cardClasses = 'bg-yellow-200 border-4 border-yellow-500 shadow-2xl animate-pulse'
+              } else if (shouldHighlightLab) {
+                cardClasses = 'bg-green-100 border-4 border-green-500 shadow-lg'
+              }
+
               return (
-                <div key={time} className="p-6 rounded-lg bg-blue-50 border-2 border-blue-200">
+                <div key={time} className={`p-6 rounded-lg ${cardClasses}`}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start">
-                      <div className="font-bold text-gray-700 text-sm mr-6 flex-shrink-0">{time}</div>
+                      <div className={`font-bold text-sm mr-6 flex-shrink-0 ${isCurrentPeriod ? 'text-yellow-900' : shouldHighlightLab ? 'text-green-900' : 'text-gray-700'}`}>{time}</div>
                       <div className="flex-1">
-                        <div className="font-bold text-sm text-blue-900 mb-2">{classData.course}</div>
-                        <div className="font-semibold text-sm text-blue-900 mb-2">{classData.subject}</div>
-                        <div className="text-xs text-blue-700 font-medium leading-tight mb-2">{classData.instructor}</div>
+                        <div className={`font-bold text-sm mb-2 ${isCurrentPeriod ? 'text-yellow-900' : shouldHighlightLab ? 'text-green-900' : 'text-blue-900'}`}>{classData.course}</div>
+                        <div className={`font-semibold text-sm mb-2 ${isCurrentPeriod ? 'text-yellow-900' : shouldHighlightLab ? 'text-green-900' : 'text-blue-900'}`}>{classData.subject}</div>
+                        <div className={`text-xs font-medium leading-tight mb-2 ${isCurrentPeriod ? 'text-yellow-800' : shouldHighlightLab ? 'text-green-800' : 'text-blue-700'}`}>{classData.instructor}</div>
+                        {/* Current period indicator */}
+                        {isCurrentPeriod && (
+                          <div className="text-xs bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full font-bold mb-2">
+                            ⏰ CURRENT PERIOD
+                          </div>
+                        )}
                         {/* Lab sessions have special styling */}
-                        {classData.course.includes('LAB') && (
-                          <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold">
-                            LAB SESSION
+                        {isLab && !isCurrentPeriod && (
+                          <div className={`text-xs px-2 py-1 rounded-full font-bold ${
+                            shouldHighlightLab 
+                              ? 'bg-green-300 text-green-900 animate-pulse' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            🔬 LAB SESSION
                           </div>
                         )}
                       </div>
@@ -906,13 +1081,30 @@ const Timetable = () => {
         </div>
       </div>
 
-      {/* Lab Sessions Highlight Banner */}
-      {highlightLabs && (
-        <div className="bg-green-100 border-2 border-green-400 rounded-xl p-4 mb-6 animate-pulse">
+      {/* Current Day Lab Sessions Banner */}
+      {currentDay && timetableData[currentDay] && Object.entries(timetableData[currentDay]).some(([time, data]) => 
+        data && data.course && data.course.includes('LAB') && !hasTimeSlotEnded(time)
+      ) && (
+        <div className="bg-green-100 border-2 border-green-400 rounded-xl p-4 mb-6">
           <div className="flex items-center space-x-3">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
-            <h3 className="text-lg font-bold text-green-800">🔬 Afternoon Lab Sessions Highlighted</h3>
-            <p className="text-green-700">Afternoon laboratory sessions (2:30 PM - 5:00 PM) are prominently highlighted below</p>
+            <div>
+              <h3 className="text-lg font-bold text-green-800">🔬 Today's Lab Sessions Highlighted</h3>
+              <p className="text-green-700">Lab sessions for {currentDay} are highlighted in green below</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Current Period Banner */}
+      {currentPeriod && currentDay && timetableData[currentDay] && timetableData[currentDay][currentPeriod] && (
+        <div className="bg-yellow-100 border-2 border-yellow-400 rounded-xl p-4 mb-6 animate-pulse">
+          <div className="flex items-center space-x-3">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full animate-ping"></div>
+            <div>
+              <h3 className="text-lg font-bold text-yellow-800">⏰ Current Period</h3>
+              <p className="text-yellow-700">Currently in progress: {currentDay} {currentPeriod}</p>
+            </div>
           </div>
         </div>
       )}
@@ -927,6 +1119,32 @@ const Timetable = () => {
         {view === 'daily' && renderDailyView()}
         {view === 'list' && renderListView()}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Deletion</h3>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete this period? It will be cleared and show as "No Class".
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button 
+                onClick={cancelDelete}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Period Modal */}
       {isEditingPeriod && (
@@ -972,9 +1190,23 @@ const Timetable = () => {
                 />
               </div>
             </div>
-            <div className="flex justify-end space-x-3 mt-6">
-              <button onClick={cancelEditPeriod} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-              <button onClick={saveEditPeriod} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save Changes</button>
+            <div className="flex justify-between items-center mt-6">
+              {/* Delete button on the left - only show if there's a period to delete */}
+              {editingContext.course || editingContext.subject || editingContext.instructor ? (
+                <button 
+                  onClick={handleDeleteClick} 
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              ) : (
+                <div></div>
+              )}
+              {/* Cancel and Save buttons on the right */}
+              <div className="flex space-x-3">
+                <button onClick={cancelEditPeriod} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button onClick={saveEditPeriod} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save Changes</button>
+              </div>
             </div>
           </div>
         </div>

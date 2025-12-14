@@ -14,18 +14,20 @@
  */
 
 // Import React for component creation
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 // Import React Router hooks for navigation and location tracking
 import { useNavigate, useLocation } from 'react-router-dom'
 // Import Clerk authentication hooks
-import { useClerk } from '@clerk/clerk-react'
+import { useClerk, useUser } from '@clerk/clerk-react'
+// Import user profile service to load user name
+import { loadUserProfile } from '../services/userProfileService'
 // Import Lucide React icons for navigation items
 import { 
   LayoutDashboard,  // Dashboard icon
   Calendar,         // Timetable icon
   BookOpen,         // Courses icon
   Building,         // Rooms icon
-  Users,            // Users icon (if needed)
+  User,             // User icon
   HelpCircle,       // Help icon
   LogOut            // Logout icon
 } from 'lucide-react'
@@ -49,6 +51,55 @@ const Sidebar = ({ activePage, setActivePage }) => {
   const location = useLocation()
   // Clerk hook for authentication actions
   const { signOut } = useClerk()
+  // Clerk hook to get current user information
+  const { user, isSignedIn } = useUser()
+  // State for image error handling
+  const [imageError, setImageError] = useState(false)
+  // State for user profile from Supabase
+  const [userProfile, setUserProfile] = useState(null)
+
+  // Reset image error when user changes
+  useEffect(() => {
+    setImageError(false)
+  }, [user?.imageUrl])
+
+  // Load user profile from Supabase to get the name
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!isSignedIn || !user?.id) {
+        return
+      }
+
+      try {
+        const profile = await loadUserProfile(user.id)
+        setUserProfile(profile)
+      } catch (err) {
+        // Profile doesn't exist yet, that's fine
+        if (err.code !== 'PGRST116') {
+          console.error('Failed to load profile in Sidebar:', err)
+        }
+      }
+    }
+
+    loadProfile()
+  }, [isSignedIn, user?.id])
+
+  // Get user name from profile or Clerk
+  const getUserName = () => {
+    // First try to get name from Supabase profile
+    if (userProfile?.name) {
+      return userProfile.name
+    }
+    // Fallback to Clerk user data
+    if (user?.fullName) {
+      return user.fullName
+    }
+    if (user?.firstName) {
+      return user.firstName
+    }
+    // Final fallback
+    return 'User'
+  }
 
   // Navigation menu items with their corresponding icons and routes
   // Each item contains an id, display label, icon component, and route path
@@ -57,6 +108,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
     { id: 'timetable', label: 'Timetable', icon: Calendar, path: '/timetable' },
     { id: 'courses', label: 'Courses', icon: BookOpen, path: '/courses' },
     { id: 'rooms', label: 'Rooms', icon: Building, path: '/rooms' },
+    { id: 'user', label: 'User', icon: User, path: '/user' },
     { id: 'help', label: 'Help', icon: HelpCircle, path: '/help' },
   ]
 
@@ -139,6 +191,36 @@ const Sidebar = ({ activePage, setActivePage }) => {
           )
         })}
       </nav>
+
+      {/* User Information Section */}
+      {user && (
+        <div className="p-4 border-t border-white/10">
+          <div className="px-4 py-3 bg-white/5 rounded-lg flex items-center space-x-3">
+            {/* Profile Picture Icon */}
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white/20 shadow-md flex-shrink-0">
+              {user?.imageUrl && !imageError ? (
+                <img
+                  src={user.imageUrl}
+                  alt={user.fullName || user.firstName || 'User'}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <User className="w-6 h-6 text-white" />
+              )}
+            </div>
+            {/* User Name and Email */}
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-medium text-sm mb-1 truncate">
+                {getUserName()}
+              </div>
+              <div className="text-primary-200 text-xs truncate">
+                {userProfile?.email || user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress || 'No email'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Logout Button Section */}
       <div className="p-4 border-t border-white/10">

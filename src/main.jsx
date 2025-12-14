@@ -6,7 +6,7 @@
  * 
  * Key responsibilities:
  * - Initialize React application
- * - Set up routing with HashRouter (for Electron compatibility)
+ * - Set up routing with BrowserRouter
  * - Enable React StrictMode for development warnings
  * - Import global styles
  */
@@ -15,8 +15,8 @@
 import React from 'react'
 // Import ReactDOM for rendering React components to the DOM
 import ReactDOM from 'react-dom/client'
-// Import HashRouter for client-side routing (works better with Electron)
-import { HashRouter } from 'react-router-dom'
+// Import BrowserRouter for client-side routing
+import { BrowserRouter } from 'react-router-dom'
 // Import Clerk for authentication
 import { ClerkProvider } from '@clerk/clerk-react'
 // Import the main App component that contains the application logic
@@ -34,11 +34,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     {/* ClerkProvider wraps the app to provide authentication context */}
     <ClerkProvider publishableKey={clerkPubKey}>
-      {/* HashRouter uses URL hash for routing, better for Electron apps */}
-      <HashRouter>
+      {/* BrowserRouter enables client-side routing */}
+      <BrowserRouter>
         {/* Main App component that contains all application logic */}
         <App />
-      </HashRouter>
+      </BrowserRouter>
     </ClerkProvider>
   </React.StrictMode>,
 )

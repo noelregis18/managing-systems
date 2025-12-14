@@ -12,10 +12,10 @@
  * - Handle page transitions and active state
  */
 
-// Import React core and useState hook for state management
-import React, { useState } from 'react'
+// Import React core and useState, useEffect hooks for state management
+import React, { useState, useEffect } from 'react'
 // Import routing components from React Router
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 // Import Clerk authentication hooks
 import { useUser } from '@clerk/clerk-react'
 
@@ -25,8 +25,13 @@ import Dashboard from './components/Dashboard' // Main dashboard page
 import Timetable from './components/Timetable' // Timetable management
 import Courses from './components/Courses' // Course management
 import Rooms from './components/Rooms' // Room management
+import User from './components/User' // User profile management
 import Help from './components/Help' // Help and documentation
 import LandingPage from './components/LandingPage' // Landing page for unauthenticated users
+import Welcome from './components/Welcome' // Welcome/Onboarding page for new users
+
+// Import user profile service to check if profile exists
+import { loadUserProfile } from './services/userProfileService'
 
 /**
  * Main App Component
@@ -43,10 +48,53 @@ function App() {
   const [activePage, setActivePage] = useState('dashboard')
   
   // Get user authentication status from Clerk
-  const { isSignedIn, isLoaded } = useUser()
+  const { isSignedIn, isLoaded, user } = useUser()
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  // Show loading state while Clerk is initializing
-  if (!isLoaded) {
+  // State to track if user profile exists
+  const [hasProfile, setHasProfile] = useState(null) // null = checking, true = exists, false = doesn't exist
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true)
+
+  // Check if user profile exists when user signs in or navigates
+  useEffect(() => {
+    const checkUserProfile = async () => {
+      if (!isSignedIn || !user?.id) {
+        setIsCheckingProfile(false)
+        setHasProfile(null)
+        return
+      }
+
+      try {
+        setIsCheckingProfile(true)
+        const profile = await loadUserProfile(user.id)
+        setHasProfile(!!profile)
+      } catch (err) {
+        // If profile doesn't exist (PGRST116), that's fine - user is new
+        if (err.code === 'PGRST116') {
+          setHasProfile(false)
+        } else {
+          console.error('Error checking profile:', err)
+          // On error, assume profile doesn't exist to show welcome page
+          setHasProfile(false)
+        }
+      } finally {
+        setIsCheckingProfile(false)
+      }
+    }
+
+    checkUserProfile()
+  }, [isSignedIn, user?.id, location.pathname]) // Also check when pathname changes (e.g., after saving profile)
+
+  // Redirect to welcome page if user doesn't have profile
+  useEffect(() => {
+    if (!isCheckingProfile && hasProfile === false && location.pathname !== '/welcome') {
+      navigate('/welcome', { replace: true })
+    }
+  }, [hasProfile, isCheckingProfile, navigate, location.pathname])
+
+  // Show loading state while Clerk is initializing or checking profile
+  if (!isLoaded || isCheckingProfile) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center">
@@ -62,7 +110,22 @@ function App() {
     return <LandingPage />
   }
 
-  // Show main application for authenticated users
+  // Show welcome page for new users without profile
+  // The Welcome component will handle redirecting to dashboard after profile is created
+  if (hasProfile === false) {
+    return (
+      <div className="h-screen bg-gray-50">
+        <div className="h-full overflow-auto px-8 py-8">
+          <Routes>
+            <Route path="/welcome" element={<Welcome />} />
+            <Route path="*" element={<Welcome />} />
+          </Routes>
+        </div>
+      </div>
+    )
+  }
+
+  // Show main application for authenticated users with profile
   return (
     // Main application container with flexbox layout
     // h-screen makes it full height, bg-gray-50 provides light gray background
@@ -78,6 +141,8 @@ function App() {
           {/* React Router Routes configuration */}
           <Routes>
             {/* Define all application routes */}
+            {/* Welcome route for new users */}
+            <Route path="/welcome" element={<Welcome />} />
             {/* Default route redirects to dashboard */}
             <Route path="/" element={<Dashboard />} />
             {/* Dashboard route for main overview */}
@@ -88,6 +153,8 @@ function App() {
             <Route path="/courses" element={<Courses />} />
             {/* Rooms route for room management */}
             <Route path="/rooms" element={<Rooms />} />
+            {/* User route for profile management */}
+            <Route path="/user" element={<User />} />
             {/* Help route for documentation and support */}
             <Route path="/help" element={<Help />} />
           </Routes>

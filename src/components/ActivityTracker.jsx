@@ -17,6 +17,10 @@
 import React, { useState, useEffect } from 'react'
 // Import Lucide React icons for UI elements
 import { Clock, CheckCircle, XCircle, AlertCircle, Activity, Settings, Calendar, BookOpen } from 'lucide-react'
+// Import Clerk authentication hooks
+import { useUser } from '@clerk/clerk-react'
+// Import user profile service
+import { loadUserProfile } from '../services/userProfileService'
 
 /**
  * ActivityTracker Component
@@ -30,68 +34,248 @@ import { Clock, CheckCircle, XCircle, AlertCircle, Activity, Settings, Calendar,
  * - Shows live activity feed
  */
 const ActivityTracker = ({ onActivityChange }) => {
-  // Real 5th Semester CSE B timetable data from LH-136
-  // Contains detailed schedule for each day and time slot
-  const timetableData = {
-    // Tuesday Schedule - Complete day's classes
-    'Tuesday-9:30-10:20': { course: 'PCC CS-503', instructor: 'AB(CS)', subject: 'Object Oriented Programming' },
-    'Tuesday-10:20-11:10': { course: 'ESC-501', instructor: 'SAR(CS)', subject: 'Software Engineering' },
-    'Tuesday-11:10-12:00': { course: 'PEC IT-501B', instructor: 'PKP(CS)', subject: 'Artificial Intelligence' },
-    'Tuesday-12:00-12:50': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
-    'Tuesday-1:40-2:30': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
-    'Tuesday-2:30-3:20': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
-    'Tuesday-3:20-4:10': { course: 'MC CS-501A', instructor: 'TB(E)', subject: 'Constitution of India' },
-    'Tuesday-4:10-5:00': { course: 'GROOM', instructor: 'PR(CS)', subject: 'Grooming Session' },
+  // Clerk hook to get current user information
+  const { user, isSignedIn } = useUser()
+  
+  // Get selected section from user profile (prioritize profile section over localStorage)
+  const [selectedSection, setSelectedSection] = useState(() => {
+    // First try localStorage (for backward compatibility)
+    return localStorage.getItem('selectedSection') || 'CSE B'
+  })
 
-    // Wednesday Schedule - Including lab sessions
-    'Wednesday-9:30-10:20': { course: 'PCC CS-501', instructor: 'RDB(CS)', subject: 'Compiler Design' },
-    'Wednesday-10:20-11:10': { course: 'ESC-501', instructor: 'SAR(CS)', subject: 'Software Engineering' },
-    'Wednesday-11:10-12:00': { course: 'PEC IT-501B', instructor: 'PKP(CS)', subject: 'Artificial Intelligence' },
-    'Wednesday-12:00-12:50': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
-    'Wednesday-1:40-2:30': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
-    'Wednesday-2:30-3:20': { course: 'ESC 591 (LAB 3&4)', instructor: 'SAR(CS)+SKHC(CS)+ASH(CS)+SHD(CS)', subject: 'Software Engineering Lab' },
-    'Wednesday-3:20-4:10': { course: 'ESC 591 (LAB 3&4)', instructor: 'SAR(CS)+SKHC(CS)+ASH(CS)+SHD(CS)', subject: 'Software Engineering Lab' },
-    'Wednesday-4:10-5:00': { course: 'ESC 591 (LAB 3&4)', instructor: 'SAR(CS)+SKHC(CS)+ASH(CS)+SHD(CS)', subject: 'Software Engineering Lab' },
-
-    // Thursday Schedule - Including library and lab sessions
-    'Thursday-9:30-10:20': { course: 'PCC CS-503', instructor: 'AB(CS)', subject: 'Object Oriented Programming' },
-    'Thursday-10:20-11:10': { course: 'PCC CS-503', instructor: 'AB(CS)', subject: 'Object Oriented Programming' },
-    'Thursday-11:10-12:00': { course: 'ESC-501', instructor: 'SAR(CS)', subject: 'Software Engineering' },
-    'Thursday-12:00-12:50': { course: 'PCC CS-501', instructor: 'RDB(CS)', subject: 'Compiler Design' },
-    'Thursday-1:40-2:30': { course: 'LIB', instructor: 'LIBRARIAN', subject: 'Library' },
-    'Thursday-2:30-3:20': { course: 'PCC CS-593 (LAB 3&4)', instructor: 'BTM(CS)+PR(CS)+MM(CS)+PK(CS)', subject: 'Operating Systems Lab' },
-    'Thursday-3:20-4:10': { course: 'PCC CS-593 (LAB 3&4)', instructor: 'BTM(CS)+PR(CS)+MM(CS)+PK(CS)', subject: 'Operating Systems Lab' },
-    'Thursday-4:10-5:00': { course: 'PCC CS-593 (LAB 3&4)', instructor: 'BTM(CS)+PR(CS)+MM(CS)+PK(CS)', subject: 'Operating Systems Lab' },
-
-    // Friday Schedule - Including aptitude training
-    'Friday-9:30-10:20': { course: 'PEC IT-501B', instructor: 'PKP(CS)', subject: 'Artificial Intelligence' },
-    'Friday-10:20-11:10': { course: 'PCC CS-501', instructor: 'RDB(CS)', subject: 'Compiler Design' },
-    'Friday-11:10-12:00': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
-    'Friday-12:00-12:50': { course: 'MC CS-501A', instructor: 'TB(E)', subject: 'Constitution of India' },
-    'Friday-1:40-2:30': { course: 'LIB', instructor: '', subject: 'Library' },
-    'Friday-2:30-3:20': { course: 'APTI', instructor: 'AM(CS)', subject: 'Aptitude Training' },
-    'Friday-3:20-4:10': { course: 'APTI', instructor: 'BTM(CS)', subject: 'Aptitude Training' },
-    'Friday-4:10-5:00': { course: 'GROOM', instructor: 'PKC(CS)', subject: 'Grooming Session' },
-
-    // Saturday Schedule - Including lab sessions
-    'Saturday-9:30-10:20': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
-    'Saturday-10:20-11:10': { course: 'ESC-501', instructor: 'SAR(CS)', subject: 'Software Engineering' },
-    'Saturday-11:10-12:00': { course: 'PCC CS-501', instructor: 'RDB(CS)', subject: 'Compiler Design' },
-    'Saturday-12:00-12:50': { course: 'PEC IT-501B', instructor: 'PKP(CS)', subject: 'Artificial Intelligence' },
-    'Saturday-1:40-2:30': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
-    'Saturday-2:30-3:20': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'AB(CS)+LKM(CS)+RR(CS)', subject: 'Object Oriented Programming Lab' },
-    'Saturday-3:20-4:10': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'AB(CS)+LKM(CS)+RR(CS)', subject: 'Object Oriented Programming Lab' },
-    'Saturday-4:10-5:00': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'AB(CS)+LKM(CS)+RR(CS)', subject: 'Object Oriented Programming Lab' },
+  // Timetable data for all sections (matching Timetable component structure)
+  const timetableDataA = {
+    'Tuesday': {
+      '09:30-10:20': { course: 'PCC CS-501', instructor: 'J(CS)', subject: 'Compiler Design' },
+      '10:20-11:10': { course: 'ESC-501', instructor: 'BR(CS)', subject: 'Software Engineering' },
+      '11:10-12:00': { course: 'PCC CS-502', instructor: 'RKM(CS)', subject: 'Operating Systems' },
+      '12:00-12:50': { course: 'MC CS-501A', instructor: 'TB(E)', subject: 'Constitution of India' },
+      '13:40-14:30': { course: 'PCC CS-503', instructor: 'SKHC(CS)', subject: 'Object Oriented Programming' },
+      '14:30-15:20': { course: 'PCC CS-592 (LAB 3&4)', instructor: 'RKM(CS)+AS(CS)+SP(CS)+AD(CS)', subject: 'Operating Systems Lab' },
+      '15:20-16:10': { course: 'PCC CS-592 (LAB 3&4)', instructor: 'RKM(CS)+AS(CS)+SP(CS)+AD(CS)', subject: 'Operating Systems Lab' },
+      '16:10-17:00': { course: 'PCC CS-592 (LAB 3&4)', instructor: 'RKM(CS)+AS(CS)+SP(CS)+AD(CS)', subject: 'Operating Systems Lab' }
+    },
+    'Wednesday': {
+      '09:30-10:20': { course: 'PEC IT-501B', instructor: 'PC(CS)', subject: 'Artificial Intelligence' },
+      '10:20-11:10': { course: 'ESC-501', instructor: 'BR(CS)', subject: 'Software Engineering' },
+      '11:10-12:00': { course: 'PCC CS-502', instructor: 'RKM(CS)', subject: 'Operating Systems' },
+      '12:00-12:50': { course: 'PCC CS-501', instructor: 'J(CS)', subject: 'Compiler Design' },
+      '13:40-14:30': { course: 'LIB', instructor: '', subject: 'Library' },
+      '14:30-15:20': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
+      '15:20-16:10': { course: 'MC CS-501A', instructor: 'TB(E)', subject: 'Constitution of India' },
+      '16:10-17:00': { course: 'GROOM', instructor: 'BR(CS)', subject: 'Grooming Session' }
+    },
+    'Thursday': {
+      '09:30-10:20': { course: 'PCC CS-501', instructor: 'J(CS)', subject: 'Compiler Design' },
+      '10:20-11:10': { course: 'PCC CS-503', instructor: 'SKHC(CS)', subject: 'Object Oriented Programming' },
+      '11:10-12:00': { course: 'ESC-501', instructor: 'BR(CS)', subject: 'Software Engineering' },
+      '12:00-12:50': { course: 'PEC IT-501B', instructor: 'PC(CS)', subject: 'Artificial Intelligence' },
+      '13:40-14:30': { course: 'LIB', instructor: '', subject: 'Library' },
+      '14:30-15:20': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'SKHC(CS)+AS(CS)+PC(CS)+AD(CS)', subject: 'Object Oriented Programming Lab' },
+      '15:20-16:10': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'SKHC(CS)+AS(CS)+PC(CS)+AD(CS)', subject: 'Object Oriented Programming Lab' },
+      '16:10-17:00': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'SKHC(CS)+AS(CS)+PC(CS)+AD(CS)', subject: 'Object Oriented Programming Lab' }
+    },
+    'Friday': {
+      '09:30-10:20': { course: 'ESC-501', instructor: 'BR(CS)', subject: 'Software Engineering' },
+      '10:20-11:10': { course: 'PCC CS-502', instructor: 'RKM(CS)', subject: 'Operating Systems' },
+      '11:10-12:00': { course: 'PEC IT-501B', instructor: 'PC(CS)', subject: 'Artificial Intelligence' },
+      '12:00-12:50': { course: 'PCC CS-503', instructor: 'SKHC(CS)', subject: 'Object Oriented Programming' },
+      '13:40-14:30': { course: 'LIB', instructor: '', subject: 'Library' },
+      '14:30-15:20': { course: 'ESC 591 (LAB 3&4)', instructor: 'BR(CS)+PR(CS)+LKM(CS)', subject: 'Software Engineering Lab' },
+      '15:20-16:10': { course: 'ESC 591 (LAB 3&4)', instructor: 'BR(CS)+PR(CS)+LKM(CS)', subject: 'Software Engineering Lab' },
+      '16:10-17:00': { course: 'ESC 591 (LAB 3&4)', instructor: 'BR(CS)+PR(CS)+LKM(CS)', subject: 'Software Engineering Lab' }
+    },
+    'Saturday': {
+      '09:30-10:20': { course: 'PCC CS-502', instructor: 'RKM(CS)', subject: 'Operating Systems' },
+      '10:20-11:10': { course: 'PCC CS-503', instructor: 'SKHC(CS)', subject: 'Object Oriented Programming' },
+      '11:10-12:00': { course: 'PEC IT-501B', instructor: 'PC(CS)', subject: 'Artificial Intelligence' },
+      '12:00-12:50': { course: 'PCC CS-501', instructor: 'J(CS)', subject: 'Compiler Design' },
+      '13:40-14:30': { course: 'LIB', instructor: '', subject: 'Library' },
+      '14:30-15:20': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
+      '15:20-16:10': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
+      '16:10-17:00': { course: 'APTI', instructor: 'BR(CS)', subject: 'Aptitude Training' }
+    }
   }
 
-  // Time slots in order - defines the daily schedule structure
+  const timetableDataB = {
+    'Tuesday': {
+      '09:30-10:20': { course: 'PCC CS-503', instructor: 'AB(CS)', subject: 'Object Oriented Programming' },
+      '10:20-11:10': { course: 'ESC-501', instructor: 'SAR(CS)', subject: 'Software Engineering' },
+      '11:10-12:00': { course: 'PEC IT-501B', instructor: 'PKP(CS)', subject: 'Artificial Intelligence' },
+      '12:00-12:50': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
+      '13:40-14:30': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
+      '14:30-15:20': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
+      '15:20-16:10': { course: 'MC CS-501A', instructor: 'TB(E)', subject: 'Constitution of India' },
+      '16:10-17:00': { course: 'GROOM', instructor: 'PR(CS)', subject: 'Grooming Session' }
+    },
+    'Wednesday': {
+      '09:30-10:20': { course: 'PCC CS-501', instructor: 'RDB(CS)', subject: 'Compiler Design' },
+      '10:20-11:10': { course: 'ESC-501', instructor: 'SAR(CS)', subject: 'Software Engineering' },
+      '11:10-12:00': { course: 'PEC IT-501B', instructor: 'PKP(CS)', subject: 'Artificial Intelligence' },
+      '12:00-12:50': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
+      '13:40-14:30': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
+      '14:30-15:20': { course: 'ESC 591 (LAB 3&4)', instructor: 'SAR(CS)+SKHC(CS)+ASH(CS)+SHD(CS)', subject: 'Software Engineering Lab' },
+      '15:20-16:10': { course: 'ESC 591 (LAB 3&4)', instructor: 'SAR(CS)+SKHC(CS)+ASH(CS)+SHD(CS)', subject: 'Software Engineering Lab' },
+      '16:10-17:00': { course: 'ESC 591 (LAB 3&4)', instructor: 'SAR(CS)+SKHC(CS)+ASH(CS)+SHD(CS)', subject: 'Software Engineering Lab' }
+    },
+    'Thursday': {
+      '09:30-10:20': { course: 'PCC CS-503', instructor: 'AB(CS)', subject: 'Object Oriented Programming' },
+      '10:20-11:10': { course: 'PCC CS-503', instructor: 'AB(CS)', subject: 'Object Oriented Programming' },
+      '11:10-12:00': { course: 'ESC-501', instructor: 'SAR(CS)', subject: 'Software Engineering' },
+      '12:00-12:50': { course: 'PCC CS-501', instructor: 'RDB(CS)', subject: 'Compiler Design' },
+      '13:40-14:30': { course: 'LIB', instructor: 'LIBRARIAN', subject: 'Library' },
+      '14:30-15:20': { course: 'PCC CS-593 (LAB 3&4)', instructor: 'BTM(CS)+PR(CS)+MM(CS)+PK(CS)', subject: 'Operating Systems Lab' },
+      '15:20-16:10': { course: 'PCC CS-593 (LAB 3&4)', instructor: 'BTM(CS)+PR(CS)+MM(CS)+PK(CS)', subject: 'Operating Systems Lab' },
+      '16:10-17:00': { course: 'PCC CS-593 (LAB 3&4)', instructor: 'BTM(CS)+PR(CS)+MM(CS)+PK(CS)', subject: 'Operating Systems Lab' }
+    },
+    'Friday': {
+      '09:30-10:20': { course: 'PEC IT-501B', instructor: 'PKP(CS)', subject: 'Artificial Intelligence' },
+      '10:20-11:10': { course: 'PCC CS-501', instructor: 'RDB(CS)', subject: 'Compiler Design' },
+      '11:10-12:00': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
+      '12:00-12:50': { course: 'MC CS-501A', instructor: 'TB(E)', subject: 'Constitution of India' },
+      '13:40-14:30': { course: 'LIB', instructor: '', subject: 'Library' },
+      '14:30-15:20': { course: 'APTI', instructor: 'AM(CS)', subject: 'Aptitude Training' },
+      '15:20-16:10': { course: 'APTI', instructor: 'BTM(CS)', subject: 'Aptitude Training' },
+      '16:10-17:00': { course: 'GROOM', instructor: 'PKC(CS)', subject: 'Grooming Session' }
+    },
+    'Saturday': {
+      '09:30-10:20': { course: 'PCC CS-502', instructor: 'BTM(CS)', subject: 'Operating Systems' },
+      '10:20-11:10': { course: 'ESC-501', instructor: 'SAR(CS)', subject: 'Software Engineering' },
+      '11:10-12:00': { course: 'PCC CS-501', instructor: 'RDB(CS)', subject: 'Compiler Design' },
+      '12:00-12:50': { course: 'PEC IT-501B', instructor: 'PKP(CS)', subject: 'Artificial Intelligence' },
+      '13:40-14:30': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
+      '14:30-15:20': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'AB(CS)+LKM(CS)+RR(CS)', subject: 'Object Oriented Programming Lab' },
+      '15:20-16:10': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'AB(CS)+LKM(CS)+RR(CS)', subject: 'Object Oriented Programming Lab' },
+      '16:10-17:00': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'AB(CS)+LKM(CS)+RR(CS)', subject: 'Object Oriented Programming Lab' }
+    }
+  }
+
+  const timetableDataC = {
+    'Tuesday': {
+      '09:30-10:20': { course: 'PCC CS-503', instructor: 'PR(CS)', subject: 'Object Oriented Programming' },
+      '10:20-11:10': { course: 'ESC-501', instructor: 'SK(CS)', subject: 'Software Engineering' },
+      '11:10-12:00': { course: 'PEC IT-501B', instructor: 'SKM(CS)', subject: 'Artificial Intelligence' },
+      '12:00-12:50': { course: 'PCC CS-501', instructor: 'AS(CS)', subject: 'Compiler Design' },
+      '13:40-14:30': { course: 'LIB', instructor: '', subject: 'Library' },
+      '14:30-15:20': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
+      '15:20-16:10': { course: 'GROOM', instructor: 'BTM(CS)', subject: 'Grooming Session' },
+      '16:10-17:00': { course: 'APTI', instructor: 'SG(CS)', subject: 'Aptitude Training' }
+    },
+    'Wednesday': {
+      '09:30-10:20': { course: 'PEC IT-501B', instructor: 'SKM(CS)', subject: 'Artificial Intelligence' },
+      '10:20-11:10': { course: 'ESC-501', instructor: 'SK(CS)', subject: 'Software Engineering' },
+      '11:10-12:00': { course: 'PCC CS-501', instructor: 'AS(CS)', subject: 'Compiler Design' },
+      '12:00-12:50': { course: 'PCC CS-503', instructor: 'PR(CS)', subject: 'Object Oriented Programming' },
+      '13:40-14:30': { course: 'LIB', instructor: '', subject: 'Library' },
+      '14:30-15:20': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'PR(CS)+RKM(CS)+PKC(CS)+SP(CS)', subject: 'Operating Systems Lab' },
+      '15:20-16:10': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'PR(CS)+RKM(CS)+PKC(CS)+SP(CS)', subject: 'Operating Systems Lab' },
+      '16:10-17:00': { course: 'PCC CS-593 (LAB 7&8)', instructor: 'PR(CS)+RKM(CS)+PKC(CS)+SP(CS)', subject: 'Operating Systems Lab' }
+    },
+    'Thursday': {
+      '09:30-10:20': { course: 'PCC CS-501', instructor: 'AS(CS)', subject: 'Compiler Design' },
+      '10:20-11:10': { course: 'PCC CS-503', instructor: 'PR(CS)', subject: 'Object Oriented Programming' },
+      '11:10-12:00': { course: 'PEC IT-501B', instructor: 'SKM(CS)', subject: 'Artificial Intelligence' },
+      '12:00-12:50': { course: 'ESC-501', instructor: 'SK(CS)', subject: 'Software Engineering' },
+      '13:40-14:30': { course: 'MC CS-501A', instructor: 'TB(E)', subject: 'Constitution of India' },
+      '14:30-15:20': { course: 'ESC 591 (LAB 3&4)', instructor: 'BR(CS)+SAR(CS)+LKM(CS)+SP(CS)', subject: 'Software Engineering Lab' },
+      '15:20-16:10': { course: 'ESC 591 (LAB 3&4)', instructor: 'BR(CS)+SAR(CS)+LKM(CS)+SP(CS)', subject: 'Software Engineering Lab' },
+      '16:10-17:00': { course: 'ESC 591 (LAB 3&4)', instructor: 'BR(CS)+SAR(CS)+LKM(CS)+SP(CS)', subject: 'Software Engineering Lab' }
+    },
+    'Friday': {
+      '09:30-10:20': { course: 'PCC CS-503', instructor: 'PR(CS)', subject: 'Object Oriented Programming' },
+      '10:20-11:10': { course: 'PCC CS-501', instructor: 'AS(CS)', subject: 'Compiler Design' },
+      '11:10-12:00': { course: 'PCC CS-502', instructor: 'AC(CS)', subject: 'Operating Systems' },
+      '12:00-12:50': { course: 'PCC CS-502', instructor: 'AC(CS)', subject: 'Operating Systems' },
+      '13:40-14:30': { course: 'LIB', instructor: '', subject: 'Library' },
+      '14:30-15:20': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
+      '15:20-16:10': { course: 'HSMC 501', instructor: 'NF', subject: 'Introduction to Industrial Management' },
+      '16:10-17:00': { course: 'MC CS-501A', instructor: 'TB(E)', subject: 'Constitution of India' }
+    },
+    'Saturday': {
+      '09:30-10:20': { course: 'PCC CS-502', instructor: 'AC(CS)', subject: 'Operating Systems' },
+      '10:20-11:10': { course: 'PCC CS-502', instructor: 'AC(CS)', subject: 'Operating Systems' },
+      '11:10-12:00': { course: 'ESC-501', instructor: 'SK(CS)', subject: 'Software Engineering' },
+      '12:00-12:50': { course: 'PEC IT-501B', instructor: 'SKM(CS)', subject: 'Artificial Intelligence' },
+      '13:40-14:30': { course: 'LIB', instructor: '', subject: 'Library' },
+      '14:30-15:20': { course: 'PCC CS-592 (LAB 3&4)', instructor: 'AC(CS)+BM(CS)+AM(CS)', subject: 'Operating Systems Lab' },
+      '15:20-16:10': { course: 'PCC CS-592 (LAB 3&4)', instructor: 'AC(CS)+BM(CS)+AM(CS)', subject: 'Operating Systems Lab' },
+      '16:10-17:00': { course: 'PCC CS-592 (LAB 3&4)', instructor: 'AC(CS)+BM(CS)+AM(CS)', subject: 'Operating Systems Lab' }
+    }
+  }
+
+  // Get timetable data based on selected section
+  const getTimetableData = () => {
+    switch (selectedSection) {
+      case 'CSE A': return timetableDataA
+      case 'CSE B': return timetableDataB
+      case 'CSE C': return timetableDataC
+      default: return timetableDataB
+    }
+  }
+
+  // Time slots in order - defines the daily schedule structure (matching Timetable format)
   const timeSlots = [
-    '9:30-10:20', '10:20-11:10', '11:10-12:00', '12:00-12:50', 
-    'LUNCH', '1:40-2:30', '2:30-3:20', '3:20-4:10', '4:10-5:00'
+    '09:30-10:20', '10:20-11:10', '11:10-12:00', '12:00-12:50', 
+    'LUNCH', '13:40-14:30', '14:30-15:20', '15:20-16:10', '16:10-17:00'
   ]
 
   // Days of the week when classes are held (excluding Sunday and Monday)
   const days = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+  // Load section from user profile and listen for changes
+  useEffect(() => {
+    const loadSectionFromProfile = async () => {
+      if (!isSignedIn || !user?.id) {
+        // Fallback to localStorage if not signed in
+        const localSection = localStorage.getItem('selectedSection') || 'CSE B'
+        setSelectedSection(localSection)
+        return
+      }
+
+      try {
+        const profile = await loadUserProfile(user.id)
+        if (profile?.section) {
+          // Use section from user profile
+          setSelectedSection(profile.section)
+          // Also update localStorage for backward compatibility
+          localStorage.setItem('selectedSection', profile.section)
+        } else {
+          // If no section in profile, use localStorage or default
+          const localSection = localStorage.getItem('selectedSection') || 'CSE B'
+          setSelectedSection(localSection)
+        }
+      } catch (error) {
+        console.error('Failed to load section from profile:', error)
+        // Fallback to localStorage on error
+        const localSection = localStorage.getItem('selectedSection') || 'CSE B'
+        setSelectedSection(localSection)
+      }
+    }
+
+    // Load initially
+    loadSectionFromProfile()
+
+    // Listen for localStorage changes (when Timetable page changes section)
+    const handleStorageChange = () => {
+      const newSection = localStorage.getItem('selectedSection') || 'CSE B'
+      setSelectedSection(newSection)
+    }
+
+    // Check for profile changes every 5 seconds
+    const profileInterval = setInterval(loadSectionFromProfile, 5000)
+
+    // Check for localStorage changes every second (for Timetable page updates)
+    const storageInterval = setInterval(handleStorageChange, 1000)
+
+    // Also listen to storage events (when changed from another tab/window)
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      clearInterval(profileInterval)
+      clearInterval(storageInterval)
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [isSignedIn, user?.id])
 
   // State management for activities and current time
   const [activities, setActivities] = useState([]) // Array of current activities
@@ -106,12 +290,13 @@ const ActivityTracker = ({ onActivityChange }) => {
   })
 
   /**
-   * Get the next class based on current date and time
+   * Get the next class based on current date and time for selected section
    * Determines which class is coming up next based on current time
    * 
    * @returns {Object|null} - Next class information or null if no classes
    */
   const getNextClass = () => {
+    const timetableData = getTimetableData()
     const now = new Date()
     const currentDay = now.getDay() // 0 = Sunday, 1 = Monday, etc.
     const currentHour = now.getHours()
@@ -135,37 +320,44 @@ const ActivityTracker = ({ onActivityChange }) => {
     
     // If it's Sunday or Monday, show Tuesday's first class
     if (!currentDayName) {
-      const tuesdayFirstClass = timetableData['Tuesday-9:30-10:20']
-      return {
-        day: 'Tuesday',
-        time: '9:30-10:20',
-        class: tuesdayFirstClass,
-        message: `Next class: ${tuesdayFirstClass.course} (${tuesdayFirstClass.subject}) on Tuesday at 9:30 AM`,
-        priority: 'high',
-        status: 'upcoming'
+      const tuesdayData = timetableData['Tuesday']
+      if (tuesdayData && tuesdayData['09:30-10:20']) {
+        const firstClass = tuesdayData['09:30-10:20']
+        return {
+          day: 'Tuesday',
+          time: '09:30-10:20',
+          class: firstClass,
+          message: `Next class: ${firstClass.course} (${firstClass.subject}) on Tuesday at 9:30 AM`,
+          priority: 'high',
+          status: 'upcoming'
+        }
       }
     }
     
     // Find the next class for today
-    for (let i = 0; i < timeSlots.length; i++) {
-      const timeSlot = timeSlots[i]
-      if (timeSlot === 'LUNCH') continue // Skip lunch break
-      
-      const [startTime] = timeSlot.split('-')
-      const [startHour, startMinute] = startTime.split(':').map(Number)
-      const startTimeInMinutes = startHour * 60 + startMinute
-      
-      // If this time slot is in the future today
-      if (startTimeInMinutes > currentTimeInMinutes) {
-        const classData = timetableData[`${currentDayName}-${timeSlot}`]
-        if (classData) {
-          return {
-            day: currentDayName,
-            time: timeSlot,
-            class: classData,
-            message: `Next class: ${classData.course} (${classData.subject}) today at ${startTime}`,
-            priority: 'high',
-            status: 'upcoming'
+    const dayData = timetableData[currentDayName]
+    if (dayData) {
+      for (let i = 0; i < timeSlots.length; i++) {
+        const timeSlot = timeSlots[i]
+        if (timeSlot === 'LUNCH') continue // Skip lunch break
+        
+        const [startTime] = timeSlot.split('-')
+        const [startHour, startMinute] = startTime.split(':').map(Number)
+        const startTimeInMinutes = startHour * 60 + startMinute
+        
+        // If this time slot is in the future today
+        if (startTimeInMinutes > currentTimeInMinutes) {
+          const classData = dayData[timeSlot]
+          if (classData) {
+            const timeDisplay = startTime.replace(/^0/, '') // Remove leading zero for display
+            return {
+              day: currentDayName,
+              time: timeSlot,
+              class: classData,
+              message: `Next class: ${classData.course} (${classData.subject}) on ${currentDayName} at ${timeDisplay}`,
+              priority: 'high',
+              status: 'upcoming'
+            }
           }
         }
       }
@@ -177,19 +369,23 @@ const ActivityTracker = ({ onActivityChange }) => {
     const nextDay = days[nextDayIndex]
     
     // Find first class of next day
-    for (const timeSlot of timeSlots) {
-      if (timeSlot === 'LUNCH') continue // Skip lunch break
-      
-      const classData = timetableData[`${nextDay}-${timeSlot}`]
-      if (classData) {
-        const [startTime] = timeSlot.split('-')
-        return {
-          day: nextDay,
-          time: timeSlot,
-          class: classData,
-          message: `Next class: ${classData.course} (${classData.subject}) on ${nextDay} at ${startTime}`,
-          priority: 'medium',
-          status: 'upcoming'
+    const nextDayData = timetableData[nextDay]
+    if (nextDayData) {
+      for (const timeSlot of timeSlots) {
+        if (timeSlot === 'LUNCH') continue // Skip lunch break
+        
+        const classData = nextDayData[timeSlot]
+        if (classData) {
+          const [startTime] = timeSlot.split('-')
+          const timeDisplay = startTime.replace(/^0/, '') // Remove leading zero for display
+          return {
+            day: nextDay,
+            time: timeSlot,
+            class: classData,
+            message: `Next class: ${classData.course} (${classData.subject}) on ${nextDay} at ${timeDisplay}`,
+            priority: 'medium',
+            status: 'upcoming'
+          }
         }
       }
     }
@@ -198,12 +394,13 @@ const ActivityTracker = ({ onActivityChange }) => {
   }
 
   /**
-   * Get current class if any
+   * Get current class if any for selected section
    * Determines if user is currently in a class based on current time
    * 
    * @returns {Object|null} - Current class information or null if not in class
    */
   const getCurrentClass = () => {
+    const timetableData = getTimetableData()
     const now = new Date()
     const currentDay = now.getDay()
     const currentHour = now.getHours()
@@ -219,6 +416,9 @@ const ActivityTracker = ({ onActivityChange }) => {
     const currentDayName = dayMap[currentDay]
     if (!currentDayName) return null
     
+    const dayData = timetableData[currentDayName]
+    if (!dayData) return null
+    
     // Check if we're currently in a class time slot
     for (let i = 0; i < timeSlots.length; i++) {
       const timeSlot = timeSlots[i]
@@ -233,7 +433,7 @@ const ActivityTracker = ({ onActivityChange }) => {
       
       // Check if current time falls within this class time slot
       if (currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes) {
-        const classData = timetableData[`${currentDayName}-${timeSlot}`]
+        const classData = dayData[timeSlot]
         if (classData) {
           return {
             day: currentDayName,
@@ -292,7 +492,7 @@ const ActivityTracker = ({ onActivityChange }) => {
     return newActivities
   }
 
-  // Update activities and current time every minute
+  // Update activities and current time every minute, and when section changes
   useEffect(() => {
     const updateActivities = () => {
       const newActivities = generateRealTimeActivities()
@@ -300,7 +500,7 @@ const ActivityTracker = ({ onActivityChange }) => {
       setCurrentTime(new Date())
     }
     
-    // Update immediately when component mounts
+    // Update immediately when component mounts or section changes
     updateActivities()
     
     // Update every minute (60000 milliseconds)
@@ -308,7 +508,7 @@ const ActivityTracker = ({ onActivityChange }) => {
     
     // Cleanup interval when component unmounts
     return () => clearInterval(interval)
-  }, [])
+  }, [selectedSection])
 
   /**
    * Handle activity approval/rejection
@@ -398,10 +598,6 @@ const ActivityTracker = ({ onActivityChange }) => {
           <Activity className="w-6 h-6 text-primary-600 mr-3" />
           {/* Header title */}
           <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
-          {/* Live indicator badge */}
-          <div className="ml-3 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-            Live
-          </div>
         </div>
         {/* Current time display */}
         <div className="text-sm text-gray-500">

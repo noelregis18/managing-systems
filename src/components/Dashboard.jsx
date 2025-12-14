@@ -15,14 +15,18 @@
  */
 
 // Import React and useState hook for state management
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 // Import useNavigate hook for programmatic navigation
 import { useNavigate } from 'react-router-dom'
+// Import Clerk authentication hooks
+import { useUser } from '@clerk/clerk-react'
 // Import Lucide React icons for statistics cards
 import { BookOpen, Building, Users, Calendar } from 'lucide-react'
 // Import custom components
 import StatCard from './StatCard' // Reusable statistics card component
 import ActivityTracker from './ActivityTracker' // Real-time activity tracking component
+// Import user profile service
+import { loadUserProfile } from '../services/userProfileService'
 
 /**
  * Dashboard Component
@@ -36,10 +40,103 @@ import ActivityTracker from './ActivityTracker' // Real-time activity tracking c
 const Dashboard = () => {
   // React Router hook for programmatic navigation
   const navigate = useNavigate()
+  // Clerk hook to get current user information
+  const { user, isSignedIn } = useUser()
   
   // State for tracking activity log entries
   // Stores array of activity change events with timestamps
   const [activityLog, setActivityLog] = useState([])
+  
+  // State for user section from profile
+  const [userSection, setUserSection] = useState('CSE B')
+  
+  // State for user profile from Supabase
+  const [userProfile, setUserProfile] = useState(null)
+  
+  // Section to lecture hall mapping (matching Timetable component)
+  const sectionToLectureHall = {
+    'CSE A': 'LH-124',
+    'CSE B': 'LH-136',
+    'CSE C': 'LH-132'
+  }
+  
+  // Load user section and profile from Supabase
+  useEffect(() => {
+    const loadUserSection = async () => {
+      if (!isSignedIn || !user?.id) {
+        // Fallback to localStorage or default
+        const localSection = localStorage.getItem('selectedSection') || 'CSE B'
+        setUserSection(localSection)
+        return
+      }
+
+      try {
+        const profile = await loadUserProfile(user.id)
+        setUserProfile(profile) // Store the full profile
+        if (profile?.section) {
+          setUserSection(profile.section)
+        } else {
+          // Fallback to localStorage or default
+          const localSection = localStorage.getItem('selectedSection') || 'CSE B'
+          setUserSection(localSection)
+        }
+      } catch (error) {
+        console.error('Failed to load user section:', error)
+        // Fallback to localStorage or default
+        const localSection = localStorage.getItem('selectedSection') || 'CSE B'
+        setUserSection(localSection)
+      }
+    }
+
+    loadUserSection()
+    
+    // Check for profile updates every 5 seconds
+    const interval = setInterval(loadUserSection, 5000)
+    
+    return () => clearInterval(interval)
+  }, [isSignedIn, user?.id])
+
+  /**
+   * Get time-based greeting based on current time of day
+   * Returns "Good morning", "Good afternoon", or "Good evening"
+   * 
+   * @returns {string} - Time-based greeting
+   */
+  const getTimeBasedGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour >= 5 && hour < 12) {
+      return 'Good morning'
+    } else if (hour >= 12 && hour < 17) {
+      return 'Good afternoon'
+    } else {
+      return 'Good evening'
+    }
+  }
+
+  /**
+   * Get user's first name from Supabase profile or Clerk user object
+   * Capitalizes only the first letter, rest lowercase
+   * Falls back to 'User' if name is not available
+   * 
+   * @returns {string} - User's first name with proper capitalization
+   */
+  const getUserFirstName = () => {
+    let firstName = ''
+    
+    // First try to get name from Supabase profile
+    if (userProfile?.name) {
+      firstName = userProfile.name.split(' ')[0]
+    } else if (user?.firstName) {
+      firstName = user.firstName
+    } else if (user?.fullName) {
+      firstName = user.fullName.split(' ')[0]
+    } else {
+      return 'User'
+    }
+    
+    // Capitalize first letter, lowercase the rest
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()
+  }
 
   // Real data for 5th Semester CSE B dashboard statistics
   // Each stat object contains title, value, icon, colors, and description
@@ -130,8 +227,10 @@ const Dashboard = () => {
     <div className="h-full overflow-hidden">
       {/* Page Header Section */}
       <div className="mb-8">
-        {/* Main dashboard title */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        {/* Main dashboard title with time-based greeting */}
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {getTimeBasedGreeting()}, {getUserFirstName()}!
+        </h1>
         {/* Welcome message and description */}
         <p className="text-gray-600">
           Welcome to your 5th Semester CSE A+B+C timetable management system. Here's an overview of your current semester.
@@ -181,7 +280,9 @@ const Dashboard = () => {
               className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <div className="font-medium text-gray-900">Check Timetable</div>
-              <div className="text-sm text-gray-600">View LH-136 weekly schedule</div>
+              <div className="text-sm text-gray-600">
+                View {sectionToLectureHall[userSection] || 'LH-136'} weekly schedule ({userSection})
+              </div>
             </button>
             {/* Lab Sessions button */}
             <button 

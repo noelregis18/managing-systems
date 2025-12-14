@@ -19,6 +19,12 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Building, Plus, Search, Edit, Trash2, MapPin, Users, Wifi, ChevronDown } from 'lucide-react'
 // Import useNavigate hook for programmatic navigation
 import { useNavigate } from 'react-router-dom'
+// Import Clerk authentication hooks
+import { useUser } from '@clerk/clerk-react'
+// Import rooms service for Supabase operations
+import { loadUserRooms, createRoom, updateRoom, deleteRoom } from '../services/roomsService'
+// Import user profile service to get section
+import { loadUserProfile } from '../services/userProfileService'
 
 /**
  * Rooms Component
@@ -35,11 +41,14 @@ import { useNavigate } from 'react-router-dom'
 const Rooms = () => {
   // Navigation hook for programmatic routing
   const navigate = useNavigate()
+  // Clerk hook to get current user information
+  const { user, isSignedIn } = useUser()
   
   // State management for room editing
   const [editingRoom, setEditingRoom] = useState(null)        // Currently editing room
   const [isEditing, setIsEditing] = useState(false)           // Edit mode flag
   const [isAddingRoom, setIsAddingRoom] = useState(false)     // Add mode flag
+  const [isLoading, setIsLoading] = useState(true)            // Loading state
   
   // State for new room form data
   const [newRoom, setNewRoom] = useState({
@@ -53,18 +62,33 @@ const Rooms = () => {
   })
   
   // State management for rooms data
-  // Real rooms data based on 5th Semester CSE B timetable
-  const [rooms, setRooms] = useState([
-    // Main Lecture Hall
-    {
-      id: 1,
-      name: 'LH-136',
-      capacity: 65,
-      type: 'Lecture Hall',
-      status: 'Available',
-      subjects: ['Software Engineering', 'Compiler Design', 'Operating Systems', 'Object Oriented Programming', 'Artificial Intelligence', 'Introduction to Industrial Management', 'Constitution of India'],
-      schedule: 'Monday to Saturday, 9:30 AM - 5:00 PM'
-    },
+  const [rooms, setRooms] = useState([])
+  
+  // State for user section from profile
+  const [userSection, setUserSection] = useState('CSE B')
+  
+  // Section to lecture hall mapping (matching Timetable component)
+  const sectionToLectureHall = {
+    'CSE A': 'LH-124',
+    'CSE B': 'LH-136',
+    'CSE C': 'LH-132'
+  }
+  
+  // Function to get default rooms based on section
+  const getDefaultRooms = (section) => {
+    const lectureHall = sectionToLectureHall[section] || 'LH-136'
+    
+    return [
+      // Main Lecture Hall (section-specific)
+      {
+        id: 1,
+        name: lectureHall,
+        capacity: 65,
+        type: 'Lecture Hall',
+        status: 'Available',
+        subjects: ['Software Engineering', 'Compiler Design', 'Operating Systems', 'Object Oriented Programming', 'Artificial Intelligence', 'Introduction to Industrial Management', 'Constitution of India'],
+        schedule: 'Monday to Saturday, 9:30 AM - 5:00 PM'
+      },
     // Software Engineering Lab
     {
       id: 2,
@@ -131,7 +155,100 @@ const Rooms = () => {
       schedule: 'Tuesday & Friday, 4:10 PM - 5:00 PM',
       instructors: 'PR(CS), PKC(CS)'
     }
-  ])
+    ]
+  }
+
+  // Load user section from profile
+  useEffect(() => {
+    const loadUserSection = async () => {
+      if (!isSignedIn || !user?.id) {
+        // Fallback to localStorage or default
+        const localSection = localStorage.getItem('selectedSection') || 'CSE B'
+        setUserSection(localSection)
+        return
+      }
+
+      try {
+        const profile = await loadUserProfile(user.id)
+        if (profile?.section) {
+          setUserSection(profile.section)
+          // Also update localStorage for backward compatibility
+          localStorage.setItem('selectedSection', profile.section)
+        } else {
+          // Fallback to localStorage or default
+          const localSection = localStorage.getItem('selectedSection') || 'CSE B'
+          setUserSection(localSection)
+        }
+      } catch (error) {
+        console.error('Failed to load user section:', error)
+        // Fallback to localStorage or default
+        const localSection = localStorage.getItem('selectedSection') || 'CSE B'
+        setUserSection(localSection)
+      }
+    }
+
+    loadUserSection()
+    
+    // Check for profile updates every 5 seconds
+    const interval = setInterval(loadUserSection, 5000)
+    
+    return () => clearInterval(interval)
+  }, [isSignedIn, user?.id])
+
+  // Load rooms from Supabase on mount and merge with default rooms
+  useEffect(() => {
+    async function fetchRooms() {
+      // Get default rooms based on current section
+      const defaultRooms = getDefaultRooms(userSection)
+      
+      if (!isSignedIn || !user?.id) {
+        // If not signed in, use default rooms only
+        setRooms(defaultRooms)
+        setIsLoading(false)
+        return
+      }
+      
+      try {
+        // Always start with default rooms (section-specific)
+        const mergedRooms = [...defaultRooms]
+        
+        // Load rooms from Supabase
+        const data = await loadUserRooms(user.id)
+        if (data && data.length > 0) {
+          // Convert database format to component format
+          const supabaseRooms = data.map(room => ({
+            id: room.id,
+            name: room.name,
+            capacity: room.capacity,
+            type: room.type,
+            status: room.status,
+            subjects: room.subjects || [],
+            schedule: room.schedule || '',
+            instructors: room.instructors || ''
+          }))
+          
+        // Get names of default rooms to avoid duplicates
+        const defaultRoomNames = new Set(defaultRooms.map(r => r.name.toLowerCase()))
+        
+        // Add Supabase rooms that don't match default room names
+        supabaseRooms.forEach(supabaseRoom => {
+          if (!defaultRoomNames.has(supabaseRoom.name.toLowerCase())) {
+            mergedRooms.push(supabaseRoom)
+          }
+        })
+      }
+      
+      setRooms(mergedRooms)
+    } catch (error) {
+      console.error('Failed to load rooms:', error)
+      // Fallback to default rooms on error
+      setRooms(defaultRooms)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  fetchRooms()
+}, [isSignedIn, user?.id, userSection])
 
   // State for search and filter functionality
   const [searchTerm, setSearchTerm] = useState('')             // Search term for filtering rooms
@@ -221,8 +338,19 @@ const Rooms = () => {
   /**
    * Handle room deletion
    */
-  const handleDeleteRoom = (roomId) => {
-    setRooms(rooms.filter(room => room.id !== roomId))
+  const handleDeleteRoom = async (roomId) => {
+    try {
+      if (isSignedIn && user?.id) {
+        // Delete from Supabase
+        await deleteRoom(user.id, roomId)
+      }
+      // Update local state
+      setRooms(rooms.filter(room => room.id !== roomId))
+    } catch (error) {
+      console.error('Failed to delete room:', error)
+      // Still update local state even if Supabase fails
+      setRooms(rooms.filter(room => room.id !== roomId))
+    }
   }
 
   /**
@@ -243,12 +371,27 @@ const Rooms = () => {
   /**
    * Handle save edited room
    */
-  const handleSaveRoom = (updatedRoom) => {
-    setRooms(rooms.map(room => 
-      room.id === updatedRoom.id ? updatedRoom : room
-    ))
-    setIsEditing(false)
-    setEditingRoom(null)
+  const handleSaveRoom = async (updatedRoom) => {
+    try {
+      if (isSignedIn && user?.id) {
+        // Update in Supabase
+        await updateRoom(user.id, updatedRoom.id, updatedRoom)
+      }
+      // Update local state
+      setRooms(rooms.map(room => 
+        room.id === updatedRoom.id ? updatedRoom : room
+      ))
+      setIsEditing(false)
+      setEditingRoom(null)
+    } catch (error) {
+      console.error('Failed to update room:', error)
+      // Still update local state even if Supabase fails
+      setRooms(rooms.map(room => 
+        room.id === updatedRoom.id ? updatedRoom : room
+      ))
+      setIsEditing(false)
+      setEditingRoom(null)
+    }
   }
 
   /**
@@ -278,24 +421,77 @@ const Rooms = () => {
   /**
    * Handle save new room
    */
-  const handleSaveNewRoom = () => {
+  const handleSaveNewRoom = async () => {
     if (newRoom.name.trim()) {
       const roomToAdd = {
         ...newRoom,
-        id: Math.max(...rooms.map(r => r.id)) + 1,
         subjects: newRoom.subjects.filter(subject => subject.trim())
       }
-      setRooms([...rooms, roomToAdd])
-      setIsAddingRoom(false)
-      setNewRoom({
-        name: '',
-        capacity: 65,
-        type: 'Lecture Hall',
-        status: 'Available',
-        subjects: [],
-        schedule: '',
-        instructors: ''
-      })
+      
+      try {
+        if (isSignedIn && user?.id) {
+          console.log('Saving room to Supabase:', { userId: user.id, roomData: roomToAdd })
+          // Save to Supabase
+          const savedRoom = await createRoom(user.id, roomToAdd)
+          console.log('Room saved successfully:', savedRoom)
+          // Add the saved room (with database ID) to local state
+          setRooms([...rooms, {
+            id: savedRoom.id,
+            name: savedRoom.name,
+            capacity: savedRoom.capacity,
+            type: savedRoom.type,
+            status: savedRoom.status,
+            subjects: savedRoom.subjects || [],
+            schedule: savedRoom.schedule || '',
+            instructors: savedRoom.instructors || ''
+          }])
+        } else {
+          console.warn('User not signed in, saving locally only')
+          // If not signed in, use local ID
+          const localId = rooms.length > 0 ? Math.max(...rooms.map(r => r.id)) + 1 : 1
+          setRooms([...rooms, {
+            ...roomToAdd,
+            id: localId
+          }])
+        }
+        
+        setIsAddingRoom(false)
+        setNewRoom({
+          name: '',
+          capacity: 65,
+          type: 'Lecture Hall',
+          status: 'Available',
+          subjects: [],
+          schedule: '',
+          instructors: ''
+        })
+      } catch (error) {
+        console.error('Failed to save room to Supabase:', error)
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        })
+        // Still add to local state even if Supabase fails
+        const localId = rooms.length > 0 ? Math.max(...rooms.map(r => r.id)) + 1 : 1
+        setRooms([...rooms, {
+          ...roomToAdd,
+          id: localId
+        }])
+        setIsAddingRoom(false)
+        setNewRoom({
+          name: '',
+          capacity: 65,
+          type: 'Lecture Hall',
+          status: 'Available',
+          subjects: [],
+          schedule: '',
+          instructors: ''
+        })
+        // Show user-friendly error message
+        alert(`Failed to save room to database: ${error.message}. Room saved locally only.`)
+      }
     }
   }
 
