@@ -24,8 +24,14 @@ import App from './App.jsx'
 // Import global CSS styles for the entire application
 import './index.css'
 
-// Clerk publishable key - using the provided key directly
-const clerkPubKey = 'pk_test_dHJ1c3RpbmctbGFicmFkb3ItOTguY2xlcmsuYWNjb3VudHMuZGV2JA'
+// Clerk publishable key - read from Vite environment variables
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+if (!clerkPubKey) {
+  console.warn(
+    'Clerk publishable key is missing. Set VITE_CLERK_PUBLISHABLE_KEY in your .env file.'
+  )
+}
 
 // Create the root element and render the application
 // BrowserRouter enables client-side routing for navigation
