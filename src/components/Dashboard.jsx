@@ -15,7 +15,7 @@
  */
 
 // Import React and useState hook for state management
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 // Import useNavigate hook for programmatic navigation
 import { useNavigate } from 'react-router-dom'
 // Import Clerk authentication hooks
@@ -27,6 +27,8 @@ import StatCard from './StatCard' // Reusable statistics card component
 import ActivityTracker from './ActivityTracker' // Real-time activity tracking component
 // Import user profile service
 import { loadUserProfile } from '../services/userProfileService'
+// Import courses service to load courses for statistics
+import { loadUserCourses } from '../services/coursesService'
 
 /**
  * Dashboard Component
@@ -52,6 +54,23 @@ const Dashboard = () => {
   
   // State for user profile from Supabase
   const [userProfile, setUserProfile] = useState(null)
+  
+  // Default courses data (matching Courses component)
+  const defaultCourses = [
+    { id: 1, name: 'Software Engineering', code: 'ESC-501', department: 'CSE / Engineering Science', instructor: 'SAR(CS)', credits: 3, duration: '6 months', students: 65, semester: 'Fall 2025' },
+    { id: 2, name: 'Compiler Design', code: 'PCC CS-501', department: 'CSE / Core', instructor: 'RDB(CS)', credits: 3, duration: '6 months', students: 65, semester: 'Fall 2025' },
+    { id: 3, name: 'Operating Systems', code: 'PCC CS-502', department: 'CSE / Core', instructor: 'BTM(CS)', credits: 3, duration: '6 months', students: 65, semester: 'Fall 2025' },
+    { id: 4, name: 'Object Oriented Programming', code: 'PCC CS-503', department: 'CSE / Core', instructor: 'AB(CS)', credits: 3, duration: '6 months', students: 65, semester: 'Fall 2025' },
+    { id: 5, name: 'Introduction to Industrial Management (Humanities III)', code: 'HSMC 501', department: 'Humanities/Management', instructor: 'NF', credits: 3, duration: '6 months', students: 65, semester: 'Fall 2025' },
+    { id: 6, name: 'Artificial Intelligence', code: 'PEC IT-501B', department: 'Department Elective', instructor: 'PKP(CS)', credits: 3, duration: '6 months', students: 65, semester: 'Fall 2025' },
+    { id: 7, name: 'Software Engineering Lab', code: 'ESC 591', department: 'CSE / Lab', instructor: 'SAR(CS)+SKHC(CS)+ASH(CS)+SHD(CS)', credits: 2, duration: '6 months', students: 65, semester: 'Fall 2025' },
+    { id: 8, name: 'Operating System Lab', code: 'PCC CS-592', department: 'CSE / Lab', instructor: 'BTM(CS)+PR(CS)+MM(CS)+PKC(CS)', credits: 2, duration: '6 months', students: 65, semester: 'Fall 2025' },
+    { id: 9, name: 'Object Oriented Programming Lab', code: 'PCC CS-593', department: 'CSE / Lab', instructor: 'AB(CS)+LKM(CS)+RR(CS)', credits: 2, duration: '6 months', students: 65, semester: 'Fall 2025' },
+    { id: 10, name: 'Constitution of India', code: 'MC CS-501A', department: 'Mandatory (MC)', instructor: 'TB(E)', credits: 0, duration: '6 months', students: 65, semester: 'Fall 2025' }
+  ]
+  
+  // State for courses data (to calculate statistics)
+  const [courses, setCourses] = useState(defaultCourses)
   
   // Section to lecture hall mapping (matching Timetable component)
   const sectionToLectureHall = {
@@ -92,6 +111,71 @@ const Dashboard = () => {
     
     // Check for profile updates every 5 seconds
     const interval = setInterval(loadUserSection, 5000)
+    
+    return () => clearInterval(interval)
+  }, [isSignedIn, user?.id])
+
+  // Load courses from Supabase for statistics (same logic as Courses component)
+  useEffect(() => {
+    async function fetchCourses() {
+      if (!isSignedIn || !user?.id) {
+        // If not signed in, use default courses only
+        setCourses(defaultCourses)
+        return
+      }
+      
+      try {
+        // Load courses from Supabase
+        const data = await loadUserCourses(user.id)
+        
+        // Convert Supabase courses to component format
+        const supabaseCourses = (data || []).map(course => ({
+          id: course.id,
+          name: course.name,
+          code: course.code,
+          department: course.department,
+          instructor: course.instructor,
+          credits: course.credits || 0,
+          duration: course.duration,
+          students: course.students,
+          semester: course.semester
+        }))
+        
+        // Create a map to track which default courses have been replaced
+        const replacedDefaults = new Set()
+        
+        // Start with default courses and replace with Supabase versions if they exist
+        const mergedCourses = defaultCourses.map(defaultCourse => {
+          const supabaseVersion = supabaseCourses.find(
+            c => c.code.toLowerCase() === defaultCourse.code.toLowerCase()
+          )
+          
+          if (supabaseVersion) {
+            replacedDefaults.add(supabaseVersion.code.toLowerCase())
+            return supabaseVersion
+          }
+          return defaultCourse
+        })
+        
+        // Add any additional Supabase courses that don't match default courses
+        supabaseCourses.forEach(supabaseCourse => {
+          if (!replacedDefaults.has(supabaseCourse.code.toLowerCase())) {
+            mergedCourses.push(supabaseCourse)
+          }
+        })
+        
+        setCourses(mergedCourses)
+      } catch (error) {
+        console.error('Failed to load courses:', error)
+        // Fallback to default courses on error
+        setCourses(defaultCourses)
+      }
+    }
+    
+    fetchCourses()
+    
+    // Refresh courses every 5 seconds to get updates when courses are added/modified
+    const interval = setInterval(fetchCourses, 5000)
     
     return () => clearInterval(interval)
   }, [isSignedIn, user?.id])
@@ -138,12 +222,25 @@ const Dashboard = () => {
     return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()
   }
 
+  // Calculate statistics from courses using useMemo for performance
+  const courseStats = useMemo(() => {
+    const totalCourses = courses.length
+    const totalCredits = courses.reduce((sum, course) => sum + (course.credits || 0), 0)
+    const currentSemester = courses.length > 0 && courses[0]?.semester ? courses[0].semester : 'Fall 2025'
+    
+    return {
+      totalCourses,
+      totalCredits,
+      currentSemester
+    }
+  }, [courses])
+
   // Real data for 5th Semester CSE B dashboard statistics
   // Each stat object contains title, value, icon, colors, and description
   const stats = [
     {
       title: 'Total Courses',
-      value: '10',
+      value: courseStats.totalCourses.toString(),
       icon: BookOpen, // Book icon for courses
       color: 'text-blue-600', // Blue text color
       bgColor: 'bg-blue-50', // Light blue background
@@ -159,7 +256,7 @@ const Dashboard = () => {
     },
     {
       title: 'Total Credits',
-      value: '24',
+      value: courseStats.totalCredits.toString(),
       icon: Calendar, // Calendar icon for credits
       color: 'text-purple-600', // Purple text color
       bgColor: 'bg-purple-50', // Light purple background
@@ -167,7 +264,7 @@ const Dashboard = () => {
     },
     {
       title: 'Current Semester',
-      value: 'Fall 2025',
+      value: courseStats.currentSemester,
       icon: Building, // Building icon for semester
       color: 'text-orange-600', // Orange text color
       bgColor: 'bg-orange-50', // Light orange background
