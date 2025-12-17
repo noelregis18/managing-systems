@@ -14,7 +14,7 @@
  */
 
 // Import React and useState hook for state management
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 // Import Lucide React icons for UI elements
 import { Building, Plus, Search, Edit, Trash2, MapPin, Users, Wifi, ChevronDown } from 'lucide-react'
 // Import useNavigate hook for programmatic navigation
@@ -100,20 +100,9 @@ const Rooms = () => {
       schedule: 'Wednesday, 2:30 PM - 5:00 PM',
       instructors: 'SAR(CS)+SKHC(CS)+ASH(CS)+SHD(CS)'
     },
-    // Operating Systems Lab
-    {
-      id: 3,
-      name: 'Computer Lab 3&4',
-      capacity: 65,
-      type: 'Computer Lab',
-      status: 'Available',
-      subjects: ['Operating Systems Lab (PCC CS-593)'],
-      schedule: 'Thursday, 2:30 PM - 5:00 PM',
-      instructors: 'BTM(CS)+PR(CS)+MM(CS)+PK(CS)'
-    },
     // Object Oriented Programming Lab
     {
-      id: 4,
+      id: 3,
       name: 'Computer Lab 7&8',
       capacity: 65,
       type: 'Computer Lab',
@@ -124,7 +113,7 @@ const Rooms = () => {
     },
     // Library
     {
-      id: 5,
+      id: 4,
       name: 'Library',
       capacity: 65,
       type: 'Library',
@@ -135,7 +124,7 @@ const Rooms = () => {
     },
     // Aptitude Training Room
     {
-      id: 6,
+      id: 5,
       name: 'Aptitude Training Room',
       capacity: 65,
       type: 'Training Room',
@@ -146,7 +135,7 @@ const Rooms = () => {
     },
     // Grooming Session Room
     {
-      id: 7,
+      id: 6,
       name: 'Grooming Session Room',
       capacity: 65,
       type: 'Training Room',
@@ -209,36 +198,49 @@ const Rooms = () => {
       }
       
       try {
-        // Always start with default rooms (section-specific)
-        const mergedRooms = [...defaultRooms]
-        
         // Load rooms from Supabase
         const data = await loadUserRooms(user.id)
-        if (data && data.length > 0) {
-          // Convert database format to component format
-          const supabaseRooms = data.map(room => ({
-            id: room.id,
-            name: room.name,
-            capacity: room.capacity,
-            type: room.type,
-            status: room.status,
-            subjects: room.subjects || [],
-            schedule: room.schedule || '',
-            instructors: room.instructors || ''
-          }))
-          
-        // Get names of default rooms to avoid duplicates
-        const defaultRoomNames = new Set(defaultRooms.map(r => r.name.toLowerCase()))
         
-        // Add Supabase rooms that don't match default room names
+        // Convert database format to component format
+        const supabaseRooms = (data || []).map(room => ({
+          id: room.id,
+          name: room.name,
+          capacity: room.capacity,
+          type: room.type,
+          status: room.status || 'Available', // Ensure status exists
+          subjects: room.subjects || [],
+          schedule: room.schedule || '',
+          instructors: room.instructors || ''
+        }))
+        
+        // Create a map of Supabase rooms by name (lowercase) for quick lookup
+        const supabaseRoomsMap = new Map()
+        supabaseRooms.forEach(room => {
+          supabaseRoomsMap.set(room.name.toLowerCase(), room)
+        })
+        
+        // Merge default rooms with Supabase rooms
+        // If a default room exists in Supabase, use the Supabase version (which has updated status)
+        // Otherwise, use the default room
+        const mergedRooms = defaultRooms.map(defaultRoom => {
+          const supabaseVersion = supabaseRoomsMap.get(defaultRoom.name.toLowerCase())
+          if (supabaseVersion) {
+            // Use Supabase version (has updated status, etc.)
+            return supabaseVersion
+          }
+          // Default room hasn't been modified in Supabase, use default
+          return defaultRoom
+        })
+        
+        // Add any additional Supabase rooms that don't match default room names
+        const defaultRoomNames = new Set(defaultRooms.map(r => r.name.toLowerCase()))
         supabaseRooms.forEach(supabaseRoom => {
           if (!defaultRoomNames.has(supabaseRoom.name.toLowerCase())) {
             mergedRooms.push(supabaseRoom)
           }
         })
-      }
       
-      setRooms(mergedRooms)
+        setRooms(mergedRooms)
     } catch (error) {
       console.error('Failed to load rooms:', error)
       // Fallback to default rooms on error
@@ -310,14 +312,32 @@ const Rooms = () => {
   /**
    * Filter rooms based on search term and selected room type
    */
-  const filteredRooms = rooms.filter(room => {
-    const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         room.type.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRooms = useMemo(() => {
+    return rooms.filter(room => {
+      const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           room.type.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesType = selectedRoomType === 'All Types' || room.type === selectedRoomType
+      
+      return matchesSearch && matchesType
+    })
+  }, [rooms, searchTerm, selectedRoomType])
+
+  /**
+   * Calculate statistics for rooms using useMemo for performance
+   */
+  const roomStats = useMemo(() => {
+    const availableCount = rooms.filter(room => room.status === 'Available').length
+    const occupiedCount = rooms.filter(room => room.status === 'Occupied').length
+    const maintenanceCount = rooms.filter(room => room.status === 'Maintenance').length
     
-    const matchesType = selectedRoomType === 'All Types' || room.type === selectedRoomType
-    
-    return matchesSearch && matchesType
-  })
+    return {
+      total: rooms.length,
+      available: availableCount,
+      occupied: occupiedCount,
+      maintenance: maintenanceCount
+    }
+  }, [rooms])
 
   /**
    * Get status color for room status badges
@@ -369,13 +389,100 @@ const Rooms = () => {
   }
 
   /**
+   * Handle toggle room status (Available <-> Occupied)
+   */
+  const handleToggleRoomStatus = async (room) => {
+    // Toggle status between Available and Occupied
+    // If status is Available, change to Occupied; otherwise change to Available
+    const newStatus = room.status === 'Available' ? 'Occupied' : 'Available'
+    const updatedRoom = { ...room, status: newStatus }
+    
+    try {
+      if (isSignedIn && user?.id) {
+        // Check if it's a Supabase room (UUID format) or default room (numeric)
+        const isSupabaseRoom = typeof room.id === 'string' && room.id.includes('-')
+        
+        if (isSupabaseRoom) {
+          // Update existing Supabase room
+          const savedRoom = await updateRoom(user.id, room.id, updatedRoom)
+          // Update local state with the saved room data
+          setRooms(prevRooms => 
+            prevRooms.map(r => 
+              r.id === room.id ? {
+                ...updatedRoom,
+                id: savedRoom.id
+              } : r
+            )
+          )
+        } else {
+          // Default room - check if it exists in Supabase by name
+          const existingRooms = await loadUserRooms(user.id)
+          const existingRoom = existingRooms.find(r => r.name.toLowerCase() === room.name.toLowerCase())
+          
+          if (existingRoom) {
+            // Room exists in Supabase, update it
+            const savedRoom = await updateRoom(user.id, existingRoom.id, updatedRoom)
+            // Update local state with the Supabase ID
+            setRooms(prevRooms => 
+              prevRooms.map(r => 
+                r.id === room.id ? {
+                  ...updatedRoom,
+                  id: savedRoom.id
+                } : r
+              )
+            )
+          } else {
+            // Room doesn't exist in Supabase, create it
+            const savedRoom = await createRoom(user.id, updatedRoom)
+            // Update local state with the new Supabase ID
+            setRooms(prevRooms => 
+              prevRooms.map(r => 
+                r.id === room.id ? {
+                  id: savedRoom.id,
+                  name: savedRoom.name,
+                  capacity: savedRoom.capacity,
+                  type: savedRoom.type,
+                  status: savedRoom.status,
+                  subjects: savedRoom.subjects || [],
+                  schedule: savedRoom.schedule || '',
+                  instructors: savedRoom.instructors || ''
+                } : r
+              )
+            )
+          }
+        }
+      } else {
+        // Not signed in, just update local state
+        setRooms(prevRooms => 
+          prevRooms.map(r => 
+            r.id === room.id ? updatedRoom : r
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Failed to update room status in Supabase:', error)
+      // Still update local state even if Supabase fails
+      setRooms(prevRooms => 
+        prevRooms.map(r => 
+          r.id === room.id ? updatedRoom : r
+        )
+      )
+    }
+  }
+
+  /**
    * Handle save edited room
    */
   const handleSaveRoom = async (updatedRoom) => {
     try {
       if (isSignedIn && user?.id) {
-        // Update in Supabase
-        await updateRoom(user.id, updatedRoom.id, updatedRoom)
+        // Check if it's a Supabase room (UUID format)
+        const isSupabaseRoom = typeof updatedRoom.id === 'string' && updatedRoom.id.includes('-')
+        
+        if (isSupabaseRoom) {
+          // Update in Supabase
+          await updateRoom(user.id, updatedRoom.id, updatedRoom)
+        }
       }
       // Update local state
       setRooms(rooms.map(room => 
@@ -563,7 +670,7 @@ const Rooms = () => {
             <Building className="w-6 h-6 text-blue-600" />
           </div>
           <h3 className="text-sm font-medium text-gray-600 mb-1">Total Rooms</h3>
-          <div className="text-2xl font-bold text-gray-900">{rooms.length}</div>
+          <div className="text-2xl font-bold text-gray-900">{roomStats.total}</div>
         </div>
         <div className="stat-card">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-green-50 rounded-lg mb-4">
@@ -578,7 +685,7 @@ const Rooms = () => {
           </div>
           <h3 className="text-sm font-medium text-gray-600 mb-1">Available</h3>
           <div className="text-2xl font-bold text-gray-900">
-            {rooms.filter(room => room.status === 'Available').length}
+            {roomStats.available}
           </div>
         </div>
         <div className="stat-card">
@@ -587,7 +694,7 @@ const Rooms = () => {
           </div>
           <h3 className="text-sm font-medium text-gray-600 mb-1">Occupied</h3>
           <div className="text-2xl font-bold text-gray-900">
-            {rooms.filter(room => room.status === 'Occupied').length}
+            {roomStats.occupied}
           </div>
         </div>
       </div>
@@ -648,9 +755,13 @@ const Rooms = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{room.name}</h3>
                 <p className="text-sm text-gray-600">{room.type}</p>
               </div>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(room.status)}`}>
+              <button
+                onClick={() => handleToggleRoomStatus(room)}
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(room.status)}`}
+                title={`Click to change status to ${room.status === 'Available' ? 'Occupied' : 'Available'}`}
+              >
                 {room.status}
-              </span>
+              </button>
             </div>
 
             {/* Room Details */}

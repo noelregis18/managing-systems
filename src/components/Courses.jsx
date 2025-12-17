@@ -14,9 +14,9 @@
  */
 
 // Import React and useState hook for state management
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 // Import Lucide React icons for UI elements
-import { BookOpen, Plus, Search, Edit, Trash2, Clock, Users, ChevronDown } from 'lucide-react'
+import { BookOpen, Plus, Search, Edit, Trash2, Clock, Users, ChevronDown, GraduationCap } from 'lucide-react'
 // Import Clerk authentication hooks
 import { useUser } from '@clerk/clerk-react'
 // Import courses service for Supabase operations
@@ -467,12 +467,33 @@ const Courses = () => {
   }
 
   /**
+   * Calculate unique instructors count using useMemo for performance
+   */
+  const uniqueInstructorsCount = useMemo(() => {
+    if (courses.length === 0) return 0
+    const instructors = new Set()
+    courses.forEach(course => {
+      if (course.instructor) {
+        // Split by '+' to handle multiple instructors
+        course.instructor.split('+').forEach(instr => {
+          instructors.add(instr.trim())
+        })
+      }
+    })
+    return instructors.size
+  }, [courses])
+
+  /**
    * Handle save new course
    */
   const handleSaveNewCourse = async () => {
     // Validate required fields
     if (!newCourse.name || !newCourse.code) {
       alert('Please fill in the course name and code')
+      return
+    }
+    if (!newCourse.instructor) {
+      alert('Please fill in the instructor name')
       return
     }
     
@@ -572,13 +593,13 @@ const Courses = () => {
         </div>
         <div className="stat-card">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-green-50 rounded-lg mb-4">
-            <Users className="w-6 h-6 text-green-600" />
+            <GraduationCap className="w-6 h-6 text-green-600" />
           </div>
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Total Students</h3>
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Total Instructors</h3>
           <div className="text-2xl font-bold text-gray-900">
-            {courses.length > 0 ? courses.reduce((sum, course) => sum + (course.students || 0), 0) : 0}
+            {uniqueInstructorsCount}
           </div>
-          <p className="text-xs text-gray-500">5th Semester CSE</p>
+          <p className="text-xs text-gray-500">Unique faculty members</p>
         </div>
         <div className="stat-card">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-50 rounded-lg mb-4">

@@ -267,6 +267,7 @@ Make sure to set the following environment variables in your hosting platform:
 The project includes SQL files for database setup:
 - `create_courses_table.sql` - Courses table schema
 - `create_user_profile_table.sql` - User profile table schema
+- `create_rooms_table.sql` - Rooms table schema
 
 Run these in your Supabase SQL editor to set up the required tables.
 
