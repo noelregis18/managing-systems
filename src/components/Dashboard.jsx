@@ -272,7 +272,9 @@ const Dashboard = () => {
               className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <div className="font-medium text-gray-900">View Courses</div>
-              <div className="text-sm text-gray-600">Browse 5th Semester CSE B courses</div>
+              <div className="text-sm text-gray-600">
+                Browse 5th Semester {userSection} courses
+              </div>
             </button>
             {/* Check Timetable button */}
             <button 

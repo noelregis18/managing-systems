@@ -79,6 +79,7 @@ const Help = () => {
     { type: 'Guide', title: 'Help', content: 'Find answers to common questions' },
     { type: 'Contact', title: 'Email Support', content: 'Contact via noel.regis04@gmail.com' },
     { type: 'Contact', title: 'Alternative Email', content: 'Contact via mdrakqibalam@gmail.com' },
+    { type: 'Contact', title: 'Additional Email', content: 'Contact via wazir3404@gmail.com' },
     { type: 'App', title: 'Version', content: 'Current app version is 1.0.0' }
   ]
 
@@ -420,6 +421,13 @@ const Help = () => {
                 >
                   <Mail className="w-4 h-4 mr-2" />
                   mdrakqibalam@gmail.com
+                </a>
+                <a 
+                  href="mailto:wazir3404@gmail.com"
+                  className="flex items-center text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  wazir3404@gmail.com
                 </a>
               </div>
             </div>

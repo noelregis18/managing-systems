@@ -272,10 +272,20 @@ const LandingPage = () => {
         </p>
 
         {/* Copyright */}
-        <div className="border-t border-white/10 w-full max-w-7xl mt-8 pt-6">
+        <div className="border-t border-white/10 w-full max-w-7xl mt-8 pt-6 space-y-6">
           <p className="text-center text-sm font-normal text-white/60">
             Copyright © 2025 <span className="text-white/80 font-semibold">Timetable Manager</span>. All rights reserved. | Built with ❤️ for Education
-              </p>
+          </p>
+          <p className="text-center text-sm font-semibold text-white/80 tracking-wide">
+            <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/10 backdrop-blur border border-white/20 shadow-sm">
+              <span className="mr-2 text-xs uppercase tracking-[0.2em] text-white/60">Created by</span>
+              <span className="text-white font-semibold">Noel Regis</span>
+              <span className="mx-2 text-white/50">•</span>
+              <span className="text-white font-semibold">Md. Raqib Alam</span>
+              <span className="mx-2 text-white/50">•</span>
+              <span className="text-white font-semibold">Md. Dilnawaz Ahmad</span>
+            </span>
+          </p>
         </div>
       </footer>
     </div>
